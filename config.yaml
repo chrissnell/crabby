@@ -1,0 +1,12 @@
+jobs:
+ - name: Discoweb
+   url:  https://discoweb.org/forums/
+   interval: 10
+ - name: Bike World
+   url:  http://bikeworld.com
+   interval: 30
+ - name: chrissnell.com
+   url:  https://chrissnell.com
+   interval: 5
+selenium:
+ url: http://localhost:4444/wd/hub
