@@ -1,12 +1,17 @@
 jobs:
- - name: Discoweb
-   url:  https://discoweb.org/forums/
-   interval: 10
- - name: Bike World
-   url:  http://bikeworld.com
+ - name: My Job
+   url:  https://mysite.org/some/page/
    interval: 30
- - name: chrissnell.com
-   url:  https://chrissnell.com
-   interval: 5
+   cookies:
+    - name: auth
+      domain: mysite.org
+      path: /
+      value: DEADBEEFC0W123456789
+      secure: true
+    - name: session
+      domain: mysite.org
+      path: /
+      value: abDijfeiF3290FijEIO30NC9jkqQER
+      secure: false
 selenium:
  url: http://localhost:4444/wd/hub

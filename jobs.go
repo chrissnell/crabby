@@ -8,9 +8,10 @@ import (
 
 // Job holds a single Selenium
 type Job struct {
-	Name     string `yaml:"name"`
-	URL      string `yaml:"url"`
-	Interval uint16 `yaml:"interval"`
+	Name     string   `yaml:"name"`
+	URL      string   `yaml:"url"`
+	Interval uint16   `yaml:"interval"`
+	Cookies  []Cookie `yaml:"cookies,omitempty"`
 }
 
 // JobRunner holds channels and state related to running Jobs
@@ -50,6 +51,7 @@ func StartJobs(jobs []Job, seleniumServer string) {
 
 	for _, j := range jobs {
 		log.Println("Launching job -> ", j.URL)
+		log.Printf("launch job -- -- --> %#v\n", j)
 		go runJob(j, jr.JobChan, seleniumServer)
 	}
 

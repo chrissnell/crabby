@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -10,18 +11,16 @@ import (
 
 func main() {
 	var err error
+
 	sigs := make(chan os.Signal, 1)
 	done := make(chan struct{}, 1)
 
-	/*
-		navigationStart -> redirectStart -> redirectEnd -> fetchStart -> domainLookupStart -> domainLookupEnd
-		-> connectStart -> connectEnd -> requestStart -> responseStart -> responseEnd
-		-> domLoading -> domInteractive -> domContentLoaded -> domComplete -> loadEventStart -> loadEventEnd
-	*/
+	cfgFile := flag.String("config", "config.yaml", "Path to config file (default: ./config.yaml)")
+	flag.Parse()
 
-	c, err := NewConfig("config.yaml")
+	c, err := NewConfig(cfgFile)
 	if err != nil {
-		log.Fatalln("Could not parse config file:", err)
+		log.Fatalln("Error reading config file.  Did you pass the -config flag?  Run with -h for help.\n", err)
 	}
 
 	StartJobs(c.Jobs, c.Selenium.URL)

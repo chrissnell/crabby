@@ -3,11 +3,21 @@ package main
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"sourcegraph.com/sourcegraph/go-selenium"
 )
 
-// requestTimings holds timing measurements for a web request
+/*
+	Order of occurance for available timing measurements:
+
+	navigationStart -> redirectStart -> redirectEnd -> fetchStart ->
+	domainLookupStart -> domainLookupEnd -> connectStart -> connectEnd ->
+	requestStart -> responseStart -> responseEnd -> domLoading ->
+	domInteractive -> domContentLoaded -> domComplete -> loadEventStart ->
+	loadEventEnd
+*/
+
 type requestTimings struct {
 	navigationStart   float64
 	redirectStart     float64
@@ -28,6 +38,7 @@ type requestTimings struct {
 	loadEventEnd      float64
 }
 
+// requestIntervals holds intervals that we derive from requestTimings
 type requestIntervals struct {
 	dnsDuration              float64
 	serverConnectionDuration float64
@@ -36,6 +47,7 @@ type requestIntervals struct {
 	domRenderingDuration     float64
 }
 
+// webRequest is a single test against a web server
 type webRequest struct {
 	url string
 	rt  *requestTimings
@@ -57,6 +69,13 @@ func RunTest(j Job, seleniumServer string) error {
 		return err
 	}
 
+	wr.wd.Get("https://discoweb.org/404/")
+
+	err = wr.AddCookies(j.Cookies)
+	if err != nil {
+		return err
+	}
+
 	defer wr.wd.Quit()
 
 	err = wr.get()
@@ -68,6 +87,8 @@ func RunTest(j Job, seleniumServer string) error {
 	if err != nil {
 		return err
 	}
+
+	time.Sleep(5 * time.Second)
 
 	fmt.Println(j.Name, "DNS time:", wr.ri.dnsDuration)
 	fmt.Println(j.Name, "Connection establishment time", wr.ri.serverConnectionDuration)
@@ -95,7 +116,7 @@ func newWebRequest(url string) webRequest {
 func (wr *webRequest) setRemote(remote string) error {
 	var err error
 
-	caps := selenium.Capabilities(map[string]interface{}{"browserName": "chrome"})
+	caps := selenium.Capabilities(map[string]interface{}{"browserName": "firefox"})
 	wr.wd, err = selenium.NewRemote(caps, remote)
 
 	if err != nil {
@@ -107,6 +128,7 @@ func (wr *webRequest) setRemote(remote string) error {
 
 func (wr *webRequest) get() error {
 	err := wr.wd.Get(wr.url)
+
 	if err != nil {
 		return fmt.Errorf("Failed to load page: %v", err)
 	}
@@ -242,21 +264,3 @@ func (wr *webRequest) calcIntervals() {
 	// domLoading -> domComplete
 	wr.ri.domRenderingDuration = wr.rt.domComplete - wr.rt.domLoading
 }
-
-// var elem selenium.WebElement
-// elem, err = webDriver.FindElement(selenium.ByCSSSelector, ".repo .name")
-// if err != nil {
-//     fmt.Printf("Failed to find element: %s\n", err)
-//     return
-// }
-
-// if text, err := elem.Text(); err == nil {
-//     fmt.Printf("Repository: %s\n", text)
-// } else {
-//     fmt.Printf("Failed to get text of element: %s\n", err)
-//     return
-// }
-
-// output:
-// Page title: go-selenium - Sourcegraph
-// Repository: go-selenium

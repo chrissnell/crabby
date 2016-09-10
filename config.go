@@ -2,6 +2,7 @@ package main
 
 import (
 	"io/ioutil"
+	"log"
 
 	"gopkg.in/yaml.v2"
 )
@@ -18,16 +19,20 @@ type SeleniumConfig struct {
 }
 
 // NewConfig creates an new config object from the given filename.
-func NewConfig(filename string) (Config, error) {
-	cfgFile, err := ioutil.ReadFile(filename)
+func NewConfig(filename *string) (*Config, error) {
+	cfgFile, err := ioutil.ReadFile(*filename)
 	if err != nil {
-		return Config{}, err
+		return &Config{}, err
 	}
 	c := Config{}
 	err = yaml.Unmarshal(cfgFile, &c)
 	if err != nil {
-		return Config{}, err
+		return &Config{}, err
 	}
 
-	return c, nil
+	if len(c.Jobs) == 0 {
+		log.Fatalln("No jobs were configured!")
+	}
+
+	return &c, nil
 }
