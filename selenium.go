@@ -1,9 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
-	"time"
+	"net/url"
 
 	"sourcegraph.com/sourcegraph/go-selenium"
 )
@@ -60,8 +61,6 @@ type webRequest struct {
 func RunTest(j Job, seleniumServer string) error {
 	var err error
 
-	fmt.Println("Name:", j.Name, "URL:", j.URL)
-
 	wr := newWebRequest(j.URL)
 
 	err = wr.setRemote(seleniumServer)
@@ -69,18 +68,45 @@ func RunTest(j Job, seleniumServer string) error {
 		return err
 	}
 
-	wr.wd.Get("https://discoweb.org/404/")
+	// There is a security feature with the popular webdrivers (Chrome, Firefox/Gecko,
+	// and possibly others) that prevents you from setting cookies in Selenium
+	// when the browser is not already on the domain for which the cookies are
+	// being set.  To work around this, we need to first load a bogus page on
+	// the same domain (anything that generates a 404 is fine) before attempting
+	// tos et the cookies.
 
-	err = wr.AddCookies(j.Cookies)
-	if err != nil {
-		return err
+	// We only need to use this work-around if we have cookies to set
+	if len(j.Cookies) > 0 {
+		var buf bytes.Buffer
+		var u *url.URL
+
+		u, err = url.Parse(j.URL)
+		if err != nil {
+			return err
+		}
+
+		buf.WriteString(u.Scheme)
+		buf.WriteString("://")
+		buf.WriteString(u.Host)
+		buf.WriteString("/selenium-testing-404")
+
+		err = wr.wd.Get(buf.String())
+		if err != nil {
+			return err
+		}
+
+		err = wr.AddCookies(j.Cookies)
+		if err != nil {
+			return err
+		}
+
 	}
 
 	defer wr.wd.Quit()
 
-	err = wr.get()
+	err = wr.wd.Get(wr.url)
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to load page: %v", err)
 	}
 
 	err = wr.getTimings()
@@ -88,13 +114,16 @@ func RunTest(j Job, seleniumServer string) error {
 		return err
 	}
 
-	time.Sleep(5 * time.Second)
-
 	fmt.Println(j.Name, "DNS time:", wr.ri.dnsDuration)
 	fmt.Println(j.Name, "Connection establishment time", wr.ri.serverConnectionDuration)
 	fmt.Println(j.Name, "Response time:", wr.ri.serverResponseDuration)
 	fmt.Println(j.Name, "Server processing time:", wr.ri.serverProcessingDuration)
 	fmt.Println(j.Name, "DOM rendering time:", wr.ri.domRenderingDuration)
+
+	err = wr.wd.Close()
+	if err != nil {
+		return err
+	}
 
 	return nil
 
@@ -116,22 +145,13 @@ func newWebRequest(url string) webRequest {
 func (wr *webRequest) setRemote(remote string) error {
 	var err error
 
-	caps := selenium.Capabilities(map[string]interface{}{"browserName": "firefox"})
+	caps := selenium.Capabilities(map[string]interface{}{"browserName": "chrome"})
 	wr.wd, err = selenium.NewRemote(caps, remote)
 
 	if err != nil {
 		return fmt.Errorf("Failed to open session %v\n", err)
 	}
 
-	return nil
-}
-
-func (wr *webRequest) get() error {
-	err := wr.wd.Get(wr.url)
-
-	if err != nil {
-		return fmt.Errorf("Failed to load page: %v", err)
-	}
 	return nil
 }
 

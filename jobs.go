@@ -51,7 +51,6 @@ func StartJobs(jobs []Job, seleniumServer string) {
 
 	for _, j := range jobs {
 		log.Println("Launching job -> ", j.URL)
-		log.Printf("launch job -- -- --> %#v\n", j)
 		go runJob(j, jr.JobChan, seleniumServer)
 	}
 
