@@ -46,7 +46,7 @@ func runJob(j Job, jchan chan<- Job, seleniumServer string) {
 }
 
 // StartJobs launches all configured jobs
-func StartJobs(jobs []Job, seleniumServer string) {
+func StartJobs(jobs []Job, seleniumServer string, storage *Storage) {
 	jr := NewJobRunner()
 
 	for _, j := range jobs {

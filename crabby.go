@@ -23,7 +23,12 @@ func main() {
 		log.Fatalln("Error reading config file.  Did you pass the -config flag?  Run with -h for help.\n", err)
 	}
 
-	StartJobs(c.Jobs, c.Selenium.URL)
+	s, err := NewStorage(c)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	StartJobs(c.Jobs, c.Selenium.URL, s)
 
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 

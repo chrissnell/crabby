@@ -11,11 +11,18 @@ import (
 type Config struct {
 	Jobs     []Job          `yaml:"jobs"`
 	Selenium SeleniumConfig `yaml:"selenium"`
+	Storage  StorageConfig  `yaml:"storage,omitempty"`
 }
 
 // SeleniumConfig holds the configuration for our Selenium service
 type SeleniumConfig struct {
 	URL string `yaml:"url"`
+}
+
+// StorageConfig holds the configuration for various storage backends.
+// More than one storage backend can be used simultaneously
+type StorageConfig struct {
+	Graphite GraphiteConfig `yaml:"graphite,omitempty"`
 }
 
 // NewConfig creates an new config object from the given filename.
