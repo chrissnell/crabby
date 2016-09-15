@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"time"
 
 	"sourcegraph.com/sourcegraph/go-selenium"
 )
@@ -58,7 +59,7 @@ type webRequest struct {
 
 // RunTest sends a Selenium job to the Selenium service for running and
 // calculates timings
-func RunTest(j Job, seleniumServer string) error {
+func RunTest(j Job, seleniumServer string, storage *Storage) error {
 	var err error
 
 	wr := newWebRequest(j.URL)
@@ -115,10 +116,19 @@ func RunTest(j Job, seleniumServer string) error {
 	}
 
 	fmt.Println(j.Name, "DNS time:", wr.ri.dnsDuration)
+	storage.MetricDistributor <- makeMetric(j.Name, "dnsDuration", wr.ri.dnsDuration)
+
 	fmt.Println(j.Name, "Connection establishment time", wr.ri.serverConnectionDuration)
+	storage.MetricDistributor <- makeMetric(j.Name, "serverConnectionDuration", wr.ri.serverConnectionDuration)
+
 	fmt.Println(j.Name, "Response time:", wr.ri.serverResponseDuration)
+	storage.MetricDistributor <- makeMetric(j.Name, "serverResponseDuration", wr.ri.serverResponseDuration)
+
 	fmt.Println(j.Name, "Server processing time:", wr.ri.serverProcessingDuration)
+	storage.MetricDistributor <- makeMetric(j.Name, "serverProcessingDuration", wr.ri.serverProcessingDuration)
+
 	fmt.Println(j.Name, "DOM rendering time:", wr.ri.domRenderingDuration)
+	storage.MetricDistributor <- makeMetric(j.Name, "domRenderingDuration", wr.ri.domRenderingDuration)
 
 	err = wr.wd.Close()
 	if err != nil {
@@ -127,6 +137,17 @@ func RunTest(j Job, seleniumServer string) error {
 
 	return nil
 
+}
+
+func makeMetric(name string, timing string, value float64) Metric {
+
+	m := Metric{
+		Name:      fmt.Sprintf("%v-%v", name, timing),
+		Value:     value,
+		Timestamp: time.Now(),
+	}
+
+	return m
 }
 
 func newWebRequest(url string) webRequest {

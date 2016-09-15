@@ -30,13 +30,13 @@ func NewJobRunner() *JobRunner {
 }
 
 // runJob executes the job on a Ticker interval
-func runJob(j Job, jchan chan<- Job, seleniumServer string) {
+func runJob(j Job, jchan chan<- Job, seleniumServer string, storage *Storage) {
 	jobTicker := time.NewTicker(time.Duration(j.Interval) * time.Second)
 
 	for {
 		select {
 		case <-jobTicker.C:
-			err := RunTest(j, seleniumServer)
+			err := RunTest(j, seleniumServer, storage)
 			if err != nil {
 				log.Println("ERROR EXECUTING JOB:", j.URL)
 			}
@@ -51,7 +51,7 @@ func StartJobs(jobs []Job, seleniumServer string, storage *Storage) {
 
 	for _, j := range jobs {
 		log.Println("Launching job -> ", j.URL)
-		go runJob(j, jr.JobChan, seleniumServer)
+		go runJob(j, jr.JobChan, seleniumServer, storage)
 	}
 
 }

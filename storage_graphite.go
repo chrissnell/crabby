@@ -20,6 +20,26 @@ type GraphiteStorage struct {
 	GraphiteConn *graphite.Graphite
 }
 
+// StartStorageEngine creates a goroutine loop to receive metrics and send
+// them off to Graphite
+func (g GraphiteStorage) StartStorageEngine() chan<- Metric {
+	metricChan := make(chan Metric, 10)
+	go g.processMetrics(metricChan)
+	return metricChan
+}
+
+func (g GraphiteStorage) processMetrics(mchan <-chan Metric) {
+	for {
+		select {
+		case m := <-mchan:
+			err := g.SendMetric(m)
+			if err != nil {
+				log.Println(err)
+			}
+		}
+	}
+}
+
 // SendMetric sends a metric value to Graphtie
 func (g GraphiteStorage) SendMetric(m Metric) error {
 	valStr := strconv.FormatFloat(m.Value, 'f', 3, 64)
