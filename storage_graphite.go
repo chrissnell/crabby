@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"log"
 	"strconv"
+	"sync"
 
 	"github.com/marpaia/graphite-golang"
 )
@@ -22,13 +24,16 @@ type GraphiteStorage struct {
 
 // StartStorageEngine creates a goroutine loop to receive metrics and send
 // them off to Graphite
-func (g GraphiteStorage) StartStorageEngine() chan<- Metric {
+func (g GraphiteStorage) StartStorageEngine(ctx context.Context, wg *sync.WaitGroup) chan<- Metric {
 	metricChan := make(chan Metric, 10)
-	go g.processMetrics(metricChan)
+	go g.processMetrics(ctx, wg, metricChan)
 	return metricChan
 }
 
-func (g GraphiteStorage) processMetrics(mchan <-chan Metric) {
+func (g GraphiteStorage) processMetrics(ctx context.Context, wg *sync.WaitGroup, mchan <-chan Metric) {
+	wg.Add(1)
+	defer wg.Done()
+
 	for {
 		select {
 		case m := <-mchan:
@@ -36,6 +41,9 @@ func (g GraphiteStorage) processMetrics(mchan <-chan Metric) {
 			if err != nil {
 				log.Println(err)
 			}
+		case <-ctx.Done():
+			log.Println("Cancellation request recieved.  Cancelling metrics processor.")
+			return
 		}
 	}
 }

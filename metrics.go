@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 )
 
@@ -30,12 +32,12 @@ type StorageEngine struct {
 // methods for various storage backends
 type StorageEngineInterface interface {
 	SendMetric(Metric) error
-	StartStorageEngine() chan<- Metric
+	StartStorageEngine(context.Context, *sync.WaitGroup) chan<- Metric
 }
 
 // NewStorage creats a Storage object, populated with all configured
 // StorageEngines
-func NewStorage(c *Config) (*Storage, error) {
+func NewStorage(ctx context.Context, wg *sync.WaitGroup, c *Config) (*Storage, error) {
 	var err error
 
 	s := Storage{}
@@ -45,12 +47,12 @@ func NewStorage(c *Config) (*Storage, error) {
 
 	// Start our metric distributor to distribute received metrics to storage
 	// backends
-	go s.metricDistributor()
+	go s.metricDistributor(ctx, wg)
 
 	// Check the configuration file for various supported storage backends
 	// and enable them if found
 	if c.Storage.Graphite.Host != "" {
-		err = s.AddEngine("graphite", c)
+		err = s.AddEngine(ctx, wg, "graphite", c)
 		if err != nil {
 			return &s, fmt.Errorf("Could not add Graphite storage backend: %v\n", err)
 		}
@@ -60,12 +62,12 @@ func NewStorage(c *Config) (*Storage, error) {
 }
 
 // AddEngine adds a new StorageEngine of name engineName to our Storage object
-func (s *Storage) AddEngine(engineName string, c *Config) error {
+func (s *Storage) AddEngine(ctx context.Context, wg *sync.WaitGroup, engineName string, c *Config) error {
 	switch engineName {
 	case "graphite":
 		se := StorageEngine{}
 		se.I = NewGraphiteStorage(c)
-		se.C = se.I.StartStorageEngine()
+		se.C = se.I.StartStorageEngine(ctx, wg)
 		s.Engines = append(s.Engines, se)
 	}
 
@@ -74,7 +76,10 @@ func (s *Storage) AddEngine(engineName string, c *Config) error {
 
 // metricDistributor receives metrics from gathers and fans them out to the various
 // storage backends
-func (s *Storage) metricDistributor() error {
+func (s *Storage) metricDistributor(ctx context.Context, wg *sync.WaitGroup) error {
+	wg.Add(1)
+	defer wg.Done()
+
 	for {
 		select {
 		case m := <-s.MetricDistributor:
@@ -82,6 +87,9 @@ func (s *Storage) metricDistributor() error {
 				log.Println("Metric Distributor :: Sending metric", m.Name)
 				e.C <- m
 			}
+		case <-ctx.Done():
+			log.Println("Cancellation request received.  Cancelling metric distributor.")
+			return nil
 		}
 	}
 }

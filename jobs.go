@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"sync"
 	"time"
@@ -30,8 +31,11 @@ func NewJobRunner() *JobRunner {
 }
 
 // runJob executes the job on a Ticker interval
-func runJob(j Job, jchan chan<- Job, seleniumServer string, storage *Storage) {
+func runJob(ctx context.Context, wg *sync.WaitGroup, j Job, jchan chan<- Job, seleniumServer string, storage *Storage) {
 	jobTicker := time.NewTicker(time.Duration(j.Interval) * time.Second)
+
+	wg.Add(1)
+	defer wg.Done()
 
 	for {
 		select {
@@ -40,18 +44,21 @@ func runJob(j Job, jchan chan<- Job, seleniumServer string, storage *Storage) {
 			if err != nil {
 				log.Println("ERROR EXECUTING JOB:", j.URL)
 			}
+		case <-ctx.Done():
+			log.Println("Cancellation request received.  Cancelling job runner.")
+			return
 		}
 	}
 
 }
 
 // StartJobs launches all configured jobs
-func StartJobs(jobs []Job, seleniumServer string, storage *Storage) {
+func StartJobs(ctx context.Context, wg *sync.WaitGroup, jobs []Job, seleniumServer string, storage *Storage) {
 	jr := NewJobRunner()
 
 	for _, j := range jobs {
 		log.Println("Launching job -> ", j.URL)
-		go runJob(j, jr.JobChan, seleniumServer, storage)
+		go runJob(ctx, wg, j, jr.JobChan, seleniumServer, storage)
 	}
 
 }
