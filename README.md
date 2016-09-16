@@ -1,0 +1,2 @@
+# crabby
+**crabby** is a site performance tester using Selenium.  To use it, you edit ```config.yaml``` and specify some URLs that you want it to check, optionally providing some pre-provisioned cookies if the site requires them.  Crabby goes and checks the pages on the specified time interval and collects some basic metrics, which it then sends to all of the configured back-end time series databases, storage services, etc., where they can be charted with a tool like [Grafana](http://grafana.org).
