@@ -1,5 +1,5 @@
 jobs:
- - name: My Job
+ - name: my_site_some_page
    url:  https://mysite.org/some/page/
    interval: 30
    cookies:
