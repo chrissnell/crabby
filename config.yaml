@@ -15,3 +15,8 @@ jobs:
       secure: false
 selenium:
  url: http://localhost:4444/wd/hub
+storage:
+    graphite:
+        host:  graphite.mysite.org
+        port: 2003
+        protocol: tcp
