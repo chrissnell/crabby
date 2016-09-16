@@ -142,7 +142,7 @@ func RunTest(j Job, seleniumServer string, storage *Storage) error {
 func makeMetric(name string, timing string, value float64) Metric {
 
 	m := Metric{
-		Name:      fmt.Sprintf("%v-%v", name, timing),
+		Name:      fmt.Sprintf("%v.%v", name, timing),
 		Value:     value,
 		Timestamp: time.Now(),
 	}
