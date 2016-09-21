@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strconv"
 	"sync"
@@ -12,14 +13,16 @@ import (
 // GraphiteConfig describes the YAML-provided configuration for a Graphite
 // storage backend
 type GraphiteConfig struct {
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	Protocol string `yaml:"protocol,omitempty"`
+	Host      string `yaml:"host"`
+	Port      int    `yaml:"port"`
+	Protocol  string `yaml:"protocol,omitempty"`
+	Namespace string `yaml:"metric-namespace,omitempty"`
 }
 
 // GraphiteStorage holds the configuration for a Graphite storage backend
 type GraphiteStorage struct {
 	GraphiteConn *graphite.Graphite
+	Namespace    string
 }
 
 // StartStorageEngine creates a goroutine loop to receive metrics and send
@@ -50,22 +53,31 @@ func (g GraphiteStorage) processMetrics(ctx context.Context, wg *sync.WaitGroup,
 
 // SendMetric sends a metric value to Graphtie
 func (g GraphiteStorage) SendMetric(m Metric) error {
+	var metricName string
+
 	valStr := strconv.FormatFloat(m.Value, 'f', 3, 64)
 
+	if g.Namespace == "" {
+		metricName = fmt.Sprintf("crabby.%v", m.Name)
+	} else {
+		metricName = fmt.Sprintf("%v.%v", g.Namespace, m.Name)
+	}
+
 	if m.Timestamp.IsZero() {
-		err := g.GraphiteConn.SimpleSend(m.Name, valStr)
+		err := g.GraphiteConn.SimpleSend(metricName, valStr)
 		if err != nil {
-			log.Printf("Could not send metric %v: %v\n", m.Name, err)
+			log.Printf("Could not send metric %v: %v\n", metricName, err)
 			return err
 		}
 		return nil
 	}
 
 	gm := graphite.Metric{
-		Name:      m.Name,
+		Name:      metricName,
 		Value:     valStr,
 		Timestamp: m.Timestamp.Unix(),
 	}
+
 	err := g.GraphiteConn.SendMetric(gm)
 	if err != nil {
 		log.Printf("Could not send metric %v: %v\n", m.Name, err)
@@ -79,6 +91,8 @@ func (g GraphiteStorage) SendMetric(m Metric) error {
 func NewGraphiteStorage(c *Config) GraphiteStorage {
 	var err error
 	g := GraphiteStorage{}
+
+	g.Namespace = c.Storage.Graphite.Namespace
 
 	switch c.Storage.Graphite.Protocol {
 	case "tcp":
