@@ -166,7 +166,7 @@ func newWebRequest(url string) webRequest {
 func (wr *webRequest) setRemote(remote string) error {
 	var err error
 
-	caps := selenium.Capabilities(map[string]interface{}{"browserName": "chrome"})
+	caps := selenium.Capabilities(map[string]interface{}{"browserName": "chrome", "cleanSession": true})
 	wr.wd, err = selenium.NewRemote(caps, remote)
 
 	if err != nil {
