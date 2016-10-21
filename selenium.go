@@ -59,7 +59,7 @@ type webRequest struct {
 
 // RunTest sends a Selenium job to the Selenium service for running and
 // calculates timings
-func RunTest(j Job, seleniumServer string, storage *Storage, timeout uint) error {
+func RunTest(j Job, seleniumServer string, storage *Storage) error {
 	var err error
 
 	wr := newWebRequest(j.URL)
@@ -67,11 +67,6 @@ func RunTest(j Job, seleniumServer string, storage *Storage, timeout uint) error
 	err = wr.setRemote(seleniumServer)
 	if err != nil {
 		return err
-	}
-
-	if timeout > 0 {
-		// Set a page load timeout so we don't wait forever...
-		wr.wd.SetTimeout("page load", timeout)
 	}
 
 	// There is a security feature with the popular webdrivers (Chrome, Firefox/Gecko,
