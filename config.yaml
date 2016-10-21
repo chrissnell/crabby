@@ -15,6 +15,7 @@ jobs:
       secure: false
 selenium:
  url: http://localhost:4444/wd/hub
+ page-load-timeout: 17
 storage:
     graphite:
         host:  graphite.mysite.org

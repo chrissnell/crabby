@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"math/rand"
 	"sync"
 	"time"
 )
@@ -31,7 +33,7 @@ func NewJobRunner() *JobRunner {
 }
 
 // runJob executes the job on a Ticker interval
-func runJob(ctx context.Context, wg *sync.WaitGroup, j Job, jchan chan<- Job, seleniumServer string, storage *Storage) {
+func runJob(ctx context.Context, wg *sync.WaitGroup, j Job, jchan chan<- Job, seleniumServer string, storage *Storage, timeout uint) {
 	jobTicker := time.NewTicker(time.Duration(j.Interval) * time.Second)
 
 	wg.Add(1)
@@ -40,7 +42,7 @@ func runJob(ctx context.Context, wg *sync.WaitGroup, j Job, jchan chan<- Job, se
 	for {
 		select {
 		case <-jobTicker.C:
-			err := RunTest(j, seleniumServer, storage)
+			err := RunTest(j, seleniumServer, storage, timeout)
 			if err != nil {
 				log.Println("ERROR EXECUTING JOB:", j.URL)
 			}
@@ -53,12 +55,20 @@ func runJob(ctx context.Context, wg *sync.WaitGroup, j Job, jchan chan<- Job, se
 }
 
 // StartJobs launches all configured jobs
-func StartJobs(ctx context.Context, wg *sync.WaitGroup, jobs []Job, seleniumServer string, storage *Storage) {
+func StartJobs(ctx context.Context, wg *sync.WaitGroup, c *Config, storage *Storage) {
 	jr := NewJobRunner()
 
+	seleniumServer := c.Selenium.URL
+	jobs := c.Jobs
+
+	rand.Seed(time.Now().Unix())
+
 	for _, j := range jobs {
+		sleepDur := time.Duration(rand.Int31n(30000)) * time.Millisecond
+		fmt.Println("Sleeping for", sleepDur, "before starting next job")
+		time.Sleep(sleepDur)
 		log.Println("Launching job -> ", j.URL)
-		go runJob(ctx, wg, j, jr.JobChan, seleniumServer, storage)
+		go runJob(ctx, wg, j, jr.JobChan, seleniumServer, storage, c.Selenium.PageLoadTimeout)
 	}
 
 }

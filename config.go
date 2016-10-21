@@ -16,7 +16,8 @@ type Config struct {
 
 // SeleniumConfig holds the configuration for our Selenium service
 type SeleniumConfig struct {
-	URL string `yaml:"url"`
+	URL             string `yaml:"url"`
+	PageLoadTimeout uint   `yaml:"page-load-timeout"`
 }
 
 // StorageConfig holds the configuration for various storage backends.
