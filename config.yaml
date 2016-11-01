@@ -21,3 +21,8 @@ storage:
         host:  graphite.mysite.org
         port: 2003
         protocol: tcp
+        metric-namespace: crabby
+    dogstatsd:
+        host: localhost
+        port: 8125
+        metric-namespace: crabby
