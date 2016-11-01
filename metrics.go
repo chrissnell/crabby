@@ -58,6 +58,13 @@ func NewStorage(ctx context.Context, wg *sync.WaitGroup, c *Config) (*Storage, e
 		}
 	}
 
+	if c.Storage.Dogstatsd.Host != "" {
+		err = s.AddEngine(ctx, wg, "dogstatsd", c)
+		if err != nil {
+			return &s, fmt.Errorf("Could not add dogstatsd storage backend: %v\n", err)
+		}
+	}
+
 	return &s, nil
 }
 
@@ -69,6 +76,10 @@ func (s *Storage) AddEngine(ctx context.Context, wg *sync.WaitGroup, engineName 
 		se.I = NewGraphiteStorage(c)
 		se.C = se.I.StartStorageEngine(ctx, wg)
 		s.Engines = append(s.Engines, se)
+	case "dogstatsd":
+		se := StorageEngine{}
+		se.I = NewDogstatsdStorage(c)
+		se.C = se.I.StartStorageEngine(ctx, wg)
 	}
 
 	return nil

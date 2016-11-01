@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"math/rand"
 	"sync"
 	"time"
 )
@@ -53,10 +55,24 @@ func runJob(ctx context.Context, wg *sync.WaitGroup, j Job, jchan chan<- Job, se
 }
 
 // StartJobs launches all configured jobs
-func StartJobs(ctx context.Context, wg *sync.WaitGroup, jobs []Job, seleniumServer string, storage *Storage) {
+func StartJobs(ctx context.Context, wg *sync.WaitGroup, c *Config, storage *Storage) {
 	jr := NewJobRunner()
 
+	jobs := c.Jobs
+	seleniumServer := c.Selenium.URL
+
+	rand.Seed(time.Now().Unix())
+
 	for _, j := range jobs {
+
+		// If we've been provided with an offset for staggering jobs, sleep for a random
+		// time interval (where: 0 < sleepDur < offset) before starting that job's timer
+		if c.Selenium.JobStaggerOffset > 0 {
+			sleepDur := time.Duration(rand.Int31n(c.Selenium.JobStaggerOffset*1000)) * time.Millisecond
+			fmt.Println("Sleeping for", sleepDur, "before starting next job")
+			time.Sleep(sleepDur)
+		}
+
 		log.Println("Launching job -> ", j.URL)
 		go runJob(ctx, wg, j, jr.JobChan, seleniumServer, storage)
 	}

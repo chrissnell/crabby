@@ -16,13 +16,15 @@ type Config struct {
 
 // SeleniumConfig holds the configuration for our Selenium service
 type SeleniumConfig struct {
-	URL string `yaml:"url"`
+	URL              string `yaml:"url"`
+	JobStaggerOffset int32  `yaml:"job-stagger-offset"`
 }
 
 // StorageConfig holds the configuration for various storage backends.
 // More than one storage backend can be used simultaneously
 type StorageConfig struct {
-	Graphite GraphiteConfig `yaml:"graphite,omitempty"`
+	Graphite  GraphiteConfig  `yaml:"graphite,omitempty"`
+	Dogstatsd DogstatsdConfig `yaml:"dogstatsd,omitempty"`
 }
 
 // NewConfig creates an new config object from the given filename.

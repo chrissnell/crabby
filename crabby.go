@@ -34,7 +34,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	StartJobs(ctx, &wg, c.Jobs, c.Selenium.URL, s)
+	StartJobs(ctx, &wg, c, s)
 
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 

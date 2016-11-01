@@ -1,0 +1,22 @@
+[Unit]
+Description=Dockerized Crabby+Selenium+Polymur Proxy
+After=docker.service
+BindsTo=docker.service
+ 
+[Service]
+TimeoutStartSec=0
+TimeoutStopSec=30
+Restart=always
+RestartSec=10
+ 
+ExecStartPre=-/usr/local/bin/docker-compose -f /etc/crabby/docker-compose.yml kill crabby selenium polymur-proxy
+ExecStartPre=-/usr/local/bin/docker-compose -f /etc/crabby/docker-compose.yml rm crabby selenium polymur-proxy
+ExecStartPre=-/usr/local/bin/docker-compose -f /etc/crabby/docker-compose.yml pull crabby selenium polymur-proxy
+ 
+ExecStart=/usr/local/bin/docker-compose -f /etc/crabby/docker-compose.yml up --force-recreate
+ 
+ExecStop=/usr/local/bin/docker-compose -f /etc/crabby/docker-compose.yml stop crabby selenium polymur-proxy
+ 
+[Install]
+WantedBy=multi-user.target
+
