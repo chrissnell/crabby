@@ -26,3 +26,5 @@ storage:
         host: localhost
         port: 8125
         metric-namespace: crabby
+        tags:
+            - crabby-sfo-1
