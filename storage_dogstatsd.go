@@ -60,7 +60,7 @@ func (d DogstatsdStorage) SendMetric(m Metric) error {
 		metricName = fmt.Sprintf("%v.%v", d.Namespace, m.Name)
 	}
 
-	err := d.DogstatsdConn.Gauge(metricName, m.Value, nil, 1)
+	err := d.DogstatsdConn.TimeInMilliseconds(metricName, m.Value, nil, 1)
 	if err != nil {
 		log.Printf("Could not send metric %v: %v\n", m.Name, err)
 		return err

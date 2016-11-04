@@ -80,6 +80,7 @@ func (s *Storage) AddEngine(ctx context.Context, wg *sync.WaitGroup, engineName 
 		se := StorageEngine{}
 		se.I = NewDogstatsdStorage(c)
 		se.C = se.I.StartStorageEngine(ctx, wg)
+		s.Engines = append(s.Engines, se)
 	}
 
 	return nil
@@ -95,7 +96,6 @@ func (s *Storage) metricDistributor(ctx context.Context, wg *sync.WaitGroup) err
 		select {
 		case m := <-s.MetricDistributor:
 			for _, e := range s.Engines {
-				log.Println("Metric Distributor :: Sending metric", m.Name)
 				e.C <- m
 			}
 		case <-ctx.Done():
