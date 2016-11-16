@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/url"
-	"time"
 
 	"sourcegraph.com/sourcegraph/go-selenium"
 )
@@ -57,9 +56,9 @@ type webRequest struct {
 	wd  selenium.WebDriver
 }
 
-// RunTest sends a Selenium job to the Selenium service for running and
+// RunSeleniumTest sends a Selenium job to the Selenium service for running and
 // calculates timings
-func RunTest(j Job, seleniumServer string, storage *Storage) error {
+func RunSeleniumTest(j Job, seleniumServer string, storage *Storage) error {
 	var err error
 
 	wr := newWebRequest(j.URL)
@@ -137,17 +136,6 @@ func RunTest(j Job, seleniumServer string, storage *Storage) error {
 
 	return nil
 
-}
-
-func makeMetric(name string, timing string, value float64) Metric {
-
-	m := Metric{
-		Name:      fmt.Sprintf("%v.%v", name, timing),
-		Value:     value,
-		Timestamp: time.Now(),
-	}
-
-	return m
 }
 
 func newWebRequest(url string) webRequest {

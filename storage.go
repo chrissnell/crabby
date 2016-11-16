@@ -15,24 +15,36 @@ type Metric struct {
 	Timestamp time.Time
 }
 
+// Event holds one monitoring event
+type Event struct {
+	Name         string
+	ServerStatus int
+	Timestamp    time.Time
+}
+
 // Storage holds our active storage backends
 type Storage struct {
 	Engines           []StorageEngine
 	MetricDistributor chan Metric
+	EventDistributor  chan Event
 }
 
 // StorageEngine holds a backend storage engine's interface as well as
 // a channel for passing metrics to the engine
 type StorageEngine struct {
-	I StorageEngineInterface
-	C chan<- Metric
+	I              StorageEngineInterface
+	M              chan<- Metric
+	E              chan<- Event
+	AcceptsMetrics bool
+	AcceptsEvents  bool
 }
 
 // StorageEngineInterface is an interface that provides a few standardized
 // methods for various storage backends
 type StorageEngineInterface interface {
-	SendMetric(Metric) error
-	StartStorageEngine(context.Context, *sync.WaitGroup) chan<- Metric
+	sendMetric(Metric) error
+	sendEvent(Event) error
+	StartStorageEngine(context.Context, *sync.WaitGroup) (chan<- Metric, chan<- Event)
 }
 
 // NewStorage creats a Storage object, populated with all configured
@@ -42,12 +54,15 @@ func NewStorage(ctx context.Context, wg *sync.WaitGroup, c *Config) (*Storage, e
 
 	s := Storage{}
 
-	// Initialize our channel for passing metrics to the MetricDistributor
+	// Initialize our channel for passing metrics to the StorageDistributor
 	s.MetricDistributor = make(chan Metric, 20)
 
-	// Start our metric distributor to distribute received metrics to storage
-	// backends
-	go s.metricDistributor(ctx, wg)
+	// Initialize our channel for passing events to the StorageDistributor
+	s.EventDistributor = make(chan Event, 20)
+
+	// Start our storage distributor to distribute received metrics and events
+	// to storage backends
+	go s.storageDistributor(ctx, wg)
 
 	// Check the configuration file for various supported storage backends
 	// and enable them if found
@@ -74,33 +89,71 @@ func (s *Storage) AddEngine(ctx context.Context, wg *sync.WaitGroup, engineName 
 	case "graphite":
 		se := StorageEngine{}
 		se.I = NewGraphiteStorage(c)
-		se.C = se.I.StartStorageEngine(ctx, wg)
+		se.AcceptsEvents = false
+		se.AcceptsMetrics = true
+		se.M, se.E = se.I.StartStorageEngine(ctx, wg)
 		s.Engines = append(s.Engines, se)
 	case "dogstatsd":
 		se := StorageEngine{}
 		se.I = NewDogstatsdStorage(c)
-		se.C = se.I.StartStorageEngine(ctx, wg)
+		se.AcceptsEvents = true
+		se.AcceptsMetrics = true
+		se.M, se.E = se.I.StartStorageEngine(ctx, wg)
 		s.Engines = append(s.Engines, se)
 	}
 
 	return nil
 }
 
-// metricDistributor receives metrics from gathers and fans them out to the various
+// storageDistributor receives metrics from gathers and fans them out to the various
 // storage backends
-func (s *Storage) metricDistributor(ctx context.Context, wg *sync.WaitGroup) error {
+func (s *Storage) storageDistributor(ctx context.Context, wg *sync.WaitGroup) error {
 	wg.Add(1)
 	defer wg.Done()
 
 	for {
 		select {
+		case e := <-s.EventDistributor:
+			for _, en := range s.Engines {
+				// We only forward events onward if the engine supports events
+				if en.AcceptsEvents {
+					en.E <- e
+				}
+			}
 		case m := <-s.MetricDistributor:
-			for _, e := range s.Engines {
-				e.C <- m
+			for _, en := range s.Engines {
+				// We only forward metrics onwards if the engine supports metrics
+				if en.AcceptsMetrics {
+					en.M <- m
+				}
 			}
 		case <-ctx.Done():
 			log.Println("Cancellation request received.  Cancelling metric distributor.")
 			return nil
 		}
 	}
+}
+
+// makeMetric creates a Metric from raw values and metric names
+func makeMetric(name string, timing string, value float64) Metric {
+
+	m := Metric{
+		Name:      fmt.Sprintf("%v.%v", name, timing),
+		Value:     value,
+		Timestamp: time.Now(),
+	}
+
+	return m
+}
+
+// makeEvent creates an Event from raw values and event names
+func makeEvent(name string, status int) Event {
+
+	e := Event{
+		Name:         name,
+		ServerStatus: status,
+		Timestamp:    time.Now(),
+	}
+
+	return e
 }

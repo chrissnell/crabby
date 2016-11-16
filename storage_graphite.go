@@ -27,10 +27,19 @@ type GraphiteStorage struct {
 
 // StartStorageEngine creates a goroutine loop to receive metrics and send
 // them off to Graphite
-func (g GraphiteStorage) StartStorageEngine(ctx context.Context, wg *sync.WaitGroup) chan<- Metric {
+func (g GraphiteStorage) StartStorageEngine(ctx context.Context, wg *sync.WaitGroup) (chan<- Metric, chan<- Event) {
+	// We're going to declare eventChan here but not initialize the channel because Graphite
+	// storage doesn't support Events, only Metrics.  We should never receive an Event on this
+	// channel and if something mistakenly sends one, the program will panic.
+	var eventChan chan<- Event
+
+	// We *do* support Metrics, so we'll initialize this as a buffered channel
 	metricChan := make(chan Metric, 10)
+
+	// Start processing the metrics we receive
 	go g.processMetrics(ctx, wg, metricChan)
-	return metricChan
+
+	return metricChan, eventChan
 }
 
 func (g GraphiteStorage) processMetrics(ctx context.Context, wg *sync.WaitGroup, mchan <-chan Metric) {
@@ -40,7 +49,7 @@ func (g GraphiteStorage) processMetrics(ctx context.Context, wg *sync.WaitGroup,
 	for {
 		select {
 		case m := <-mchan:
-			err := g.SendMetric(m)
+			err := g.sendMetric(m)
 			if err != nil {
 				log.Println(err)
 			}
@@ -51,8 +60,8 @@ func (g GraphiteStorage) processMetrics(ctx context.Context, wg *sync.WaitGroup,
 	}
 }
 
-// SendMetric sends a metric value to Graphtie
-func (g GraphiteStorage) SendMetric(m Metric) error {
+// sendMetric sends a metric value to Graphtie
+func (g GraphiteStorage) sendMetric(m Metric) error {
 	var metricName string
 
 	valStr := strconv.FormatFloat(m.Value, 'f', 3, 64)
@@ -85,6 +94,12 @@ func (g GraphiteStorage) SendMetric(m Metric) error {
 	}
 
 	return nil
+}
+
+// sendEvent is necessary to implement the StorageEngine interface.
+func (g GraphiteStorage) sendEvent(e Event) error {
+	var err error
+	return err
 }
 
 // NewGraphiteStorage sets up a new Graphite storage backend

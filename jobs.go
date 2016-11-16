@@ -13,6 +13,7 @@ import (
 type Job struct {
 	Name     string   `yaml:"name"`
 	URL      string   `yaml:"url"`
+	Type     string   `yaml:"type"`
 	Interval uint16   `yaml:"interval"`
 	Cookies  []Cookie `yaml:"cookies,omitempty"`
 }
@@ -42,9 +43,17 @@ func runJob(ctx context.Context, wg *sync.WaitGroup, j Job, jchan chan<- Job, se
 	for {
 		select {
 		case <-jobTicker.C:
-			err := RunTest(j, seleniumServer, storage)
-			if err != nil {
-				log.Println("ERROR EXECUTING JOB:", j.URL)
+			switch j.Type {
+			case "selenium":
+				err := RunSeleniumTest(j, seleniumServer, storage)
+				if err != nil {
+					log.Println("ERROR EXECUTING JOB:", j.URL)
+				}
+			case "simple":
+				err := RunSimpleTest(j, storage)
+				if err != nil {
+					log.Println("ERROR EXECUTING JOB:", j.URL)
+				}
 			}
 		case <-ctx.Done():
 			log.Println("Cancellation request received.  Cancelling job runner.")
