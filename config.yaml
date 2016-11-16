@@ -1,5 +1,6 @@
 jobs:
  - name: my_site_some_page
+   type: selenium
    url:  https://mysite.org/some/page/
    interval: 30
    cookies:
@@ -13,6 +14,10 @@ jobs:
       path: /
       value: abDijfeiF3290FijEIO30NC9jkqQER
       secure: false
+ - name: another_page
+   type: simple
+   url: https://some-other-site.org/some/page
+   interval: 10
 selenium:
  url: http://localhost:4444/wd/hub
  job-stagger-offset: 30

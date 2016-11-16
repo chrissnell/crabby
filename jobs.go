@@ -54,6 +54,12 @@ func runJob(ctx context.Context, wg *sync.WaitGroup, j Job, jchan chan<- Job, se
 				if err != nil {
 					log.Println("ERROR EXECUTING JOB:", j.URL)
 				}
+			default:
+				// We run Selenium tests by default
+				err := RunSeleniumTest(j, seleniumServer, storage)
+				if err != nil {
+					log.Println("ERROR EXECUTING JOB:", j.URL)
+				}
 			}
 		case <-ctx.Done():
 			log.Println("Cancellation request received.  Cancelling job runner.")
