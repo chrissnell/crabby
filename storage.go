@@ -60,10 +60,6 @@ func NewStorage(ctx context.Context, wg *sync.WaitGroup, c *Config) (*Storage, e
 	// Initialize our channel for passing events to the StorageDistributor
 	s.EventDistributor = make(chan Event, 20)
 
-	// Start our storage distributor to distribute received metrics and events
-	// to storage backends
-	go s.storageDistributor(ctx, wg)
-
 	// Check the configuration file for various supported storage backends
 	// and enable them if found
 	if c.Storage.Graphite.Host != "" {
@@ -79,6 +75,10 @@ func NewStorage(ctx context.Context, wg *sync.WaitGroup, c *Config) (*Storage, e
 			return &s, fmt.Errorf("Could not add dogstatsd storage backend: %v\n", err)
 		}
 	}
+
+	// Start our storage distributor to distribute received metrics and events
+	// to storage backends
+	go s.storageDistributor(ctx, wg)
 
 	return &s, nil
 }

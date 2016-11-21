@@ -58,14 +58,15 @@ type webRequest struct {
 
 // RunSeleniumTest sends a Selenium job to the Selenium service for running and
 // calculates timings
-func RunSeleniumTest(j Job, seleniumServer string, storage *Storage) error {
+func RunSeleniumTest(j Job, seleniumServer string, storage *Storage) {
 	var err error
 
 	wr := newWebRequest(j.URL)
 
 	err = wr.setRemote(seleniumServer)
 	if err != nil {
-		return err
+		log.Println("Error connecting to Selenium service:", err)
+		return
 	}
 
 	// There is a security feature with the popular webdrivers (Chrome, Firefox/Gecko,
@@ -82,22 +83,25 @@ func RunSeleniumTest(j Job, seleniumServer string, storage *Storage) error {
 
 		u, err = url.Parse(j.URL)
 		if err != nil {
-			return err
+			log.Printf("Error parsing url %v: %v\n", j.URL, err)
+			return
 		}
 
 		buf.WriteString(u.Scheme)
 		buf.WriteString("://")
 		buf.WriteString(u.Host)
-		buf.WriteString("/selenium-testing-404")
+		buf.WriteString("/selenium-testing-404?source=crabby")
 
 		err = wr.wd.Get(buf.String())
 		if err != nil {
-			return err
+			log.Printf("Error fetching page %v: %v\n", buf.String(), err)
+			return
 		}
 
 		err = wr.AddCookies(j.Cookies)
 		if err != nil {
-			return err
+			log.Println("Error adding cookies to Selenium request:", err)
+			return
 		}
 
 	}
@@ -106,12 +110,14 @@ func RunSeleniumTest(j Job, seleniumServer string, storage *Storage) error {
 
 	err = wr.wd.Get(wr.url)
 	if err != nil {
-		return fmt.Errorf("Failed to load page: %v", err)
+		log.Println("Error: Selenium failed to load page:", err)
+		return
 	}
 
 	err = wr.getTimings()
 	if err != nil {
-		return err
+		log.Println("Error: Could not get page timings from Selenium", err)
+		return
 	}
 
 	fmt.Println(j.Name, "DNS time:", wr.ri.dnsDuration)
@@ -131,10 +137,9 @@ func RunSeleniumTest(j Job, seleniumServer string, storage *Storage) error {
 
 	err = wr.wd.Close()
 	if err != nil {
-		return err
+		log.Println("Error: Could not close Selenium request:", err)
+		return
 	}
-
-	return nil
 
 }
 

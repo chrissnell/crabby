@@ -51,12 +51,12 @@ type simpleRequestIntervals struct {
 
 // RunSimpleTest starts a simple HTTP/HTTPS test of a site within crabby.  It does
 // not use Selenium to perform this test; instead, it uses Go's built-in net/http client.
-func RunSimpleTest(j Job, storage *Storage) error {
+func RunSimpleTest(j Job, storage *Storage, ctx context.Context) {
 
 	req, err := http.NewRequest("GET", j.URL, nil)
 	if err != nil {
 		log.Printf("unable to create request: %v", err)
-		return err
+		return
 	}
 
 	var t0, t1, t2, t3, t4 time.Time
@@ -79,7 +79,7 @@ func RunSimpleTest(j Job, storage *Storage) error {
 		GotConn:              func(_ httptrace.GotConnInfo) { t3 = time.Now() },
 		GotFirstResponseByte: func() { t4 = time.Now() },
 	}
-	req = req.WithContext(httptrace.WithClientTrace(context.Background(), trace))
+	req = req.WithContext(httptrace.WithClientTrace(ctx, trace))
 
 	tr := &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
@@ -108,7 +108,7 @@ func RunSimpleTest(j Job, storage *Storage) error {
 		err = http2.ConfigureTransport(tr)
 		if err != nil {
 			log.Println("failed to prepare transport for HTTP/2:", err)
-			return err
+			return
 		}
 	}
 
@@ -119,7 +119,7 @@ func RunSimpleTest(j Job, storage *Storage) error {
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println("Failed to read response:", err)
-		return err
+		return
 	}
 
 	// Send our server response code as an event
@@ -145,6 +145,4 @@ func RunSimpleTest(j Job, storage *Storage) error {
 		storage.MetricDistributor <- makeMetric(j.Name, "server_response_duration", t4.Sub(t3).Seconds()*1000)
 		storage.MetricDistributor <- makeMetric(j.Name, "server_processing_duration", t5.Sub(t4).Seconds()*1000)
 	}
-
-	return nil
 }

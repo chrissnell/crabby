@@ -81,6 +81,14 @@ func (d DogstatsdStorage) sendMetric(m Metric) error {
 // sendEvent sends an event (as a service check) to the Datadog API endpoint
 func (d DogstatsdStorage) sendEvent(e Event) error {
 
+	var eventName string
+
+	if d.Namespace == "" {
+		eventName = fmt.Sprintf("crabby.%v", e.Name)
+	} else {
+		eventName = fmt.Sprintf("%v.%v", d.Namespace, e.Name)
+	}
+
 	// While Crabby calls this an "event", it's really a "service check" in
 	// Datadog parlance.  Datadog does have the concept of "events" but it's
 	// more difficult to set up monitoring for events than it is service checks.
@@ -88,9 +96,8 @@ func (d DogstatsdStorage) sendEvent(e Event) error {
 	// set the Status field to indicate whether things are OK (response code 1xx/2xx/3xx)
 	// or are failing (response code 4xx/5xx)
 	sc := &statsd.ServiceCheck{
-		Name:      e.Name,
-		Timestamp: e.Timestamp,
-		Message:   fmt.Sprintf("%v is returning a HTTP status code of %v", e.Name, e.ServerStatus),
+		Name:    eventName,
+		Message: fmt.Sprintf("%v is returning a HTTP status code of %v", e.Name, e.ServerStatus),
 	}
 
 	if (e.ServerStatus < 400) && (e.ServerStatus > 0) {
