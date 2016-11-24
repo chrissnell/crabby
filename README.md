@@ -21,7 +21,7 @@ Crabby has two types of probes for measuring website performance:
 - **`simple`**, which uses Go's built-in HTTP/2-capable client, `net/http`, to conduct simple HTTP `GET` requests.  These requests measure server performance metrics (including TLS negotiation time for HTTPS) but only pulls down the base URL but *not* objects reference by that page.  Being headless, it cannot measure DOM rendering time.  The `simple` probe is appropriate for measuring app/API availabililty and HTTP connection metrics. 
 
 ## Metrics Delivery
-Crabby currently supports two protocols for metrics delivery, Graphite and Datadog.  Crabby supports multiple metrics destinations for each type if needed so it could, for example, multiplex your data to two Graphite collectors and each collector will receive all data points.
+Crabby currently supports two protocols for metrics delivery, Graphite and Datadog:
 
 ### Graphite
 Crabby speaks the Carbon protocol via TCP or UDP for sending performance metrics to remote Graphite servers.  This is a great way to centrally collect metrics from multiple Crabby POPs.  Using a tool like Grafana, you can consolidate those metrics onto a single dashboard and have a very powerful way of looking at your website performance:
