@@ -1,18 +1,5 @@
 version: '2'
 services:
-  polymur-proxy:
-    network_mode: "host"
-    environment:
-    - POLYMUR_COMPONENT=polymur-proxy
-    - CA_CERT=/tls/ca-chain.pem
-    - CLIENT_CERT=/tls/cert.pem
-    - CLIENT_KEY=/tls/key.pem
-    - GATEWAY=https://polymur-gateway.mycompany.com:8443
-    image: chrissnell/polymur
-    ports:
-    - "127.0.0.1:2003:2003"
-    volumes:
-    - /etc/polymur-proxy:/tls
   selenium:
     network_mode: "host"
     image: selenium/standalone-chrome
@@ -26,5 +13,4 @@ services:
     volumes:
      - /etc/crabby:/config
     depends_on:
-     - polymur-proxy
      - selenium
