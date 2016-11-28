@@ -45,7 +45,7 @@ func runJob(ctx context.Context, wg *sync.WaitGroup, j Job, jchan chan<- Job, se
 		case <-jobTicker.C:
 			switch j.Type {
 			case "selenium":
-				go RunSeleniumTest(j, seleniumServer, storage)
+				RunSeleniumTest(j, seleniumServer, storage)
 			case "simple":
 				go RunSimpleTest(j, storage, ctx)
 			default:
