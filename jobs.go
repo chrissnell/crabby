@@ -50,7 +50,7 @@ func runJob(ctx context.Context, wg *sync.WaitGroup, j Job, jchan chan<- Job, se
 				go RunSimpleTest(j, storage, ctx)
 			default:
 				// We run Selenium tests by default
-				go RunSeleniumTest(j, seleniumServer, storage)
+				RunSeleniumTest(j, seleniumServer, storage)
 			}
 		case <-ctx.Done():
 			log.Println("Cancellation request received.  Cancelling job runner.")

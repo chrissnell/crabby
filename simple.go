@@ -93,16 +93,6 @@ func RunSimpleTest(j Job, storage *Storage, ctx context.Context) {
 
 	switch url.Scheme {
 	case "https":
-		// host, _, err := net.SplitHostPort(req.Host)
-		// if err != nil {
-		// 	host = req.Host
-		// }
-
-		// tr.TLSClientConfig = &tls.Config{
-		// 	ServerName:         host,
-		// 	InsecureSkipVerify: true,
-		// }
-
 		// Because we create a custom TLSClientConfig, we have to opt-in to HTTP/2.
 		// See https://github.com/golang/go/issues/14275
 		err = http2.ConfigureTransport(tr)

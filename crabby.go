@@ -34,6 +34,11 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	// If configured, start a goroutine to report internal metrics from the Go runtime
+	if c.ReportInternalMetrics {
+		go startInternalMetrics(ctx, &wg, s)
+	}
+
 	StartJobs(ctx, &wg, c, s)
 
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)

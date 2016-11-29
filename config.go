@@ -9,9 +9,10 @@ import (
 
 // Config is the base of our configuration data structure
 type Config struct {
-	Jobs     []Job          `yaml:"jobs"`
-	Selenium SeleniumConfig `yaml:"selenium"`
-	Storage  StorageConfig  `yaml:"storage,omitempty"`
+	Jobs                  []Job          `yaml:"jobs"`
+	Selenium              SeleniumConfig `yaml:"selenium"`
+	Storage               StorageConfig  `yaml:"storage,omitempty"`
+	ReportInternalMetrics bool           `yaml:"report-internal-metrics,omitempty"`
 }
 
 // SeleniumConfig holds the configuration for our Selenium service

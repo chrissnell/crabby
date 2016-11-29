@@ -69,6 +69,8 @@ func RunSeleniumTest(j Job, seleniumServer string, storage *Storage) {
 		return
 	}
 
+	defer wr.wd.Quit()
+
 	// There is a security feature with the popular webdrivers (Chrome, Firefox/Gecko,
 	// and possibly others) that prevents you from setting cookies in Selenium
 	// when the browser is not already on the domain for which the cookies are
@@ -105,8 +107,6 @@ func RunSeleniumTest(j Job, seleniumServer string, storage *Storage) {
 		}
 
 	}
-
-	defer wr.wd.Quit()
 
 	err = wr.wd.Get(wr.url)
 	if err != nil {

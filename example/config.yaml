@@ -33,3 +33,4 @@ storage:
         metric-namespace: crabby
         tags:
             - crabby-sfo-1
+report-internal-metrics: true
