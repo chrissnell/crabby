@@ -36,7 +36,7 @@ func main() {
 
 	// If configured, start a goroutine to report internal metrics from the Go runtime
 	if c.ReportInternalMetrics {
-		go startInternalMetrics(ctx, &wg, s)
+		go startInternalMetrics(ctx, &wg, s, c.InternalMetricsInterval)
 	}
 
 	StartJobs(ctx, &wg, c, s)

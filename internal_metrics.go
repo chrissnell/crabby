@@ -9,9 +9,15 @@ import (
 )
 
 // startInternalMetrics collects metrics from Crabby's Go runtime and reports them as metrics
-func startInternalMetrics(ctx context.Context, wg *sync.WaitGroup, storage *Storage) {
+func startInternalMetrics(ctx context.Context, wg *sync.WaitGroup, storage *Storage, interval uint) {
 	var memstats runtime.MemStats
-	metricsTicker := time.NewTicker(15 * time.Second)
+	var metricsTicker *time.Ticker
+
+	if interval > 0 {
+		metricsTicker = time.NewTicker(time.Duration(interval) * time.Second)
+	} else {
+		metricsTicker = time.NewTicker(15 * time.Second)
+	}
 
 	wg.Add(1)
 	defer wg.Done()

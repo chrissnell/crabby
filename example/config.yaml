@@ -34,3 +34,4 @@ storage:
         tags:
             - crabby-sfo-1
 report-internal-metrics: true
+internal-metrics-gathering-interval: 15
