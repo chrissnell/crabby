@@ -13,7 +13,7 @@ Fields:
 | `cookies`  | Cookies that will be set before loading this page.  **This only works for `selenium` tests.** |
 
 ### `cookies`
-The `cookies` array holds all cookies to be set for a given job.  **These only apply to `selenium` tests.**  These will be set before loading the page.  Please note that these will generate an additional hit to your site (a 404 URL, intentionally) to work around a Selenium security "feature" that doesn't allow you to set cookies for a site until the browser is already on that site.
+The optional `cookies` array holds all cookies to be set for a given job.  **These only apply to `selenium` tests.**  These will be set before loading the page.  Please note that these will generate an additional hit to your site (a 404 URL, intentionally) to work around a Selenium security "feature" that doesn't allow you to set cookies for a site until the browser is already on that site.
 
 | Field Name | Description |
 | ---------- | ----------- |
