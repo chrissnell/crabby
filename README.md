@@ -49,4 +49,4 @@ To use Crabby in Docker, you'll need to mount your `config.yaml` Crabby configur
 
 # Crabby Configuration
 Crabby is configured by a YAML file that you pass via the `-config` flag (defaults to `config.yaml`).
-See [CONFIGURATION.md](/CONFIGURATION.md) for a detailed description of this file.  There is also [an example](/example/config.yaml], if you need one.
+See [CONFIGURATION.md](/CONFIGURATION.md) for a detailed description of this file.  There is also [an example](/example/config.yaml), if you need one.
