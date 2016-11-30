@@ -47,5 +47,6 @@ There's also a `docker-compose.yml` in the [example/](https://github.com/chrissn
 To use Crabby in Docker, you'll need to mount your `config.yaml` Crabby configuration file into the container and set the `CRABBY_CONFIG` environment variable to the location where you mounted it.  Again, the Docker Compose examples handle this for you so if you're unfamiliar with Docker volumes, I recommend using Compose.
 
 
-#Crabby Configuration Reference
+# Crabby Configuration
 Crabby is configured by a YAML file that you pass via the `-config` flag (defaults to `config.yaml`).
+See [CONFIGURATION.md](/CONFIGURATION.md) for a detailed description of this file.  There is also [an example](/example/config.yaml], if you need one.
