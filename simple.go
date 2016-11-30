@@ -37,8 +37,6 @@ import (
 	"net/http/httptrace"
 	"net/url"
 	"time"
-
-	"golang.org/x/net/http2"
 )
 
 type simpleRequestIntervals struct {
@@ -51,9 +49,9 @@ type simpleRequestIntervals struct {
 
 // RunSimpleTest starts a simple HTTP/HTTPS test of a site within crabby.  It does
 // not use Selenium to perform this test; instead, it uses Go's built-in net/http client.
-func RunSimpleTest(j Job, storage *Storage, ctx context.Context) {
+func RunSimpleTest(ctx context.Context, j Job, storage *Storage, client *http.Client) {
 
-	req, err := http.NewRequest("GET", j.URL, nil)
+	req, err := http.NewRequest(http.MethodGet, j.URL, nil)
 	if err != nil {
 		log.Printf("unable to create request: %v", err)
 		return
@@ -79,32 +77,9 @@ func RunSimpleTest(j Job, storage *Storage, ctx context.Context) {
 		GotConn:              func(_ httptrace.GotConnInfo) { t3 = time.Now() },
 		GotFirstResponseByte: func() { t4 = time.Now() },
 	}
+
+	// We'll use our Context in this request in case we have to shut down midstream
 	req = req.WithContext(httptrace.WithClientTrace(ctx, trace))
-
-	tr := &http.Transport{
-		Proxy:                 http.ProxyFromEnvironment,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-	}
-
-	url, err := url.Parse(j.URL)
-
-	switch url.Scheme {
-	case "https":
-		// Because we create a custom TLSClientConfig, we have to opt-in to HTTP/2.
-		// See https://github.com/golang/go/issues/14275
-		err = http2.ConfigureTransport(tr)
-		if err != nil {
-			log.Println("failed to prepare transport for HTTP/2:", err)
-			return
-		}
-	}
-
-	client := &http.Client{
-		Transport: tr,
-	}
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -115,10 +90,21 @@ func RunSimpleTest(j Job, storage *Storage, ctx context.Context) {
 	// Send our server response code as an event
 	storage.EventDistributor <- makeEvent(j.Name, resp.StatusCode)
 
+	// Even though we never read the response body, if we don't close it,
+	// the http.Transport goroutines will terminate and the app will eventually
+	// crash due to OOM
+	resp.Body.Close()
+
 	t5 := time.Now() // after read body
 	if t0.IsZero() {
 		// we skipped DNS
 		t0 = t1
+	}
+
+	url, err := url.Parse(j.URL)
+	if err != nil {
+		log.Println("Failed to parse URL:", err)
+		return
 	}
 
 	switch url.Scheme {

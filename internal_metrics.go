@@ -30,6 +30,7 @@ func startInternalMetrics(ctx context.Context, wg *sync.WaitGroup, storage *Stor
 			storage.MetricDistributor <- makeInternalMetric("crabby-process.heap.alloc", float64(memstats.HeapAlloc))
 			storage.MetricDistributor <- makeInternalMetric("crabby-process.heap.in_use", float64(memstats.HeapInuse))
 			storage.MetricDistributor <- makeInternalMetric("crabby-process.num_goroutines", float64(runtime.NumGoroutine()))
+
 		case <-ctx.Done():
 			log.Println("Cancellation request received.  Cancelling job runner.")
 			return

@@ -5,10 +5,12 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 )
 
 func main() {
@@ -39,7 +41,22 @@ func main() {
 		go startInternalMetrics(ctx, &wg, s, c.InternalMetricsInterval)
 	}
 
-	StartJobs(ctx, &wg, c, s)
+	tr := &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		// We have to disable keep-alives to keep our server connection time
+		// measurements accurate
+		DisableKeepAlives: true,
+	}
+
+	client := &http.Client{
+		Transport: tr,
+	}
+
+	defer tr.CloseIdleConnections()
+
+	StartJobs(ctx, &wg, c, s, client)
 
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 

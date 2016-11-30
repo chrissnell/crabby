@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"net/http"
 	"sync"
 	"time"
 )
@@ -34,7 +35,7 @@ func NewJobRunner() *JobRunner {
 }
 
 // runJob executes the job on a Ticker interval
-func runJob(ctx context.Context, wg *sync.WaitGroup, j Job, jchan chan<- Job, seleniumServer string, storage *Storage) {
+func runJob(ctx context.Context, wg *sync.WaitGroup, j Job, jchan chan<- Job, seleniumServer string, storage *Storage, client *http.Client) {
 	jobTicker := time.NewTicker(time.Duration(j.Interval) * time.Second)
 
 	wg.Add(1)
@@ -47,7 +48,7 @@ func runJob(ctx context.Context, wg *sync.WaitGroup, j Job, jchan chan<- Job, se
 			case "selenium":
 				RunSeleniumTest(j, seleniumServer, storage)
 			case "simple":
-				go RunSimpleTest(j, storage, ctx)
+				go RunSimpleTest(ctx, j, storage, client)
 			default:
 				// We run Selenium tests by default
 				RunSeleniumTest(j, seleniumServer, storage)
@@ -61,7 +62,7 @@ func runJob(ctx context.Context, wg *sync.WaitGroup, j Job, jchan chan<- Job, se
 }
 
 // StartJobs launches all configured jobs
-func StartJobs(ctx context.Context, wg *sync.WaitGroup, c *Config, storage *Storage) {
+func StartJobs(ctx context.Context, wg *sync.WaitGroup, c *Config, storage *Storage, client *http.Client) {
 	jr := NewJobRunner()
 
 	jobs := c.Jobs
@@ -80,7 +81,7 @@ func StartJobs(ctx context.Context, wg *sync.WaitGroup, c *Config, storage *Stor
 		}
 
 		log.Println("Launching job -> ", j.URL)
-		go runJob(ctx, wg, j, jr.JobChan, seleniumServer, storage)
+		go runJob(ctx, wg, j, jr.JobChan, seleniumServer, storage, client)
 	}
 
 }
