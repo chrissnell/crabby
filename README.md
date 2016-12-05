@@ -12,10 +12,11 @@
 - Server response time
 - DOM rendering time
 
-Crabby currently supports two types of metrics delivery:
+Crabby currently supports three types of metrics delivery:
 
 * Graphite - Time measurements as metrics using Carbon protocol over TCP or UDP
 * Datadog API - Time measurements as metrics; HTTP response codes as service check
+* Prometheus - Time measurements as metrics, sent to Prometheus pushgateway
 
 # Two Types of Performance Measuring
 Crabby has two types of probes for measuring website performance:
@@ -35,6 +36,8 @@ Crabby supports the sending of performance metrics to Datadog for use in graphic
 
 ![Multi-POP Performance Graph in Grafana](https://chrissnell.github.io/crabby/images/crabby-datadog.png "Graphing Crabby metrics in a Datadog dashboard")
 
+## Prometheus
+Crabby has experimental support for sending metrics to Prometheus via a pushgateway.  The `config.yaml` in the `examples` directory will get you started.  If you specify a namespace, it will be applied as a grouping: `crabby => NAMESPACE`.  Otherwise, it uses a default grouping of `instance => HOSTNAME`.
 
 # Using Crabby
 Crabby is configured by a YAML file that you pass via the `-config` flag.  If you don't pass the `-config` flag, Crabby looks for a `config.yaml` by default.  This config file defines the sites that you want to test, as well as the destinations for the metrics that are generated (Graphite or Datadog or both).  If you're using the `selenium` probe, you'll also need to specify the endpoint hostname and port for the Selenium API server.  
