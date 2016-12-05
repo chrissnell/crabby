@@ -25,8 +25,9 @@ type SeleniumConfig struct {
 // StorageConfig holds the configuration for various storage backends.
 // More than one storage backend can be used simultaneously
 type StorageConfig struct {
-	Graphite  GraphiteConfig  `yaml:"graphite,omitempty"`
-	Dogstatsd DogstatsdConfig `yaml:"dogstatsd,omitempty"`
+	Graphite   GraphiteConfig   `yaml:"graphite,omitempty"`
+	Dogstatsd  DogstatsdConfig  `yaml:"dogstatsd,omitempty"`
+	Prometheus PrometheusConfig `yaml:"prometheus,omitempty"`
 }
 
 // NewConfig creates an new config object from the given filename.
