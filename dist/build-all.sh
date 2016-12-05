@@ -17,14 +17,14 @@ do
       GOOS=$plat GOARCH=amd64 go build -o ${PROG_WITH_TAG}-win64.exe
       echo "Compressing..."
       zip -9 ${PROG_WITH_TAG}-win64.zip ${PROG_WITH_TAG}-win64.exe
-      mv ${PROG_WITH_TAG}-win64.zip /binaries/${prog}/
+      mv ${PROG_WITH_TAG}-win64.zip binaries/
       rm ${PROG_WITH_TAG}-win64.exe
     else
        OUT="${PROG_WITH_TAG}-${plat}-amd64"
        GOOS=$plat GOARCH=amd64 go build -o $OUT
        echo "Compressing..."
        gzip -f $OUT
-       mv ${OUT}.gz /binaries/${prog}/
+       mv ${OUT}.gz binaries/
     fi
   done
 
@@ -34,5 +34,5 @@ do
   GOOS=linux GOARCH=arm go build -o $OUT
   echo "Compressing..."
   gzip -f $OUT
-  mv ${OUT}.gz /binaries/${prog}/
+  mv ${OUT}.gz binaries/
 done
