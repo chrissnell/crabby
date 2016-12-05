@@ -83,6 +83,13 @@ func NewStorage(ctx context.Context, wg *sync.WaitGroup, c *Config) (*Storage, e
 		}
 	}
 
+	if c.Storage.Riemann.Host != "" {
+		err = s.AddEngine(ctx, wg, "riemann", c)
+		if err != nil {
+			return &s, fmt.Errorf("Could not start Riemann storage backend: %v\n", err)
+		}
+	}
+
 	// Start our storage distributor to distribute received metrics and events
 	// to storage backends
 	go s.storageDistributor(ctx, wg)
@@ -92,6 +99,8 @@ func NewStorage(ctx context.Context, wg *sync.WaitGroup, c *Config) (*Storage, e
 
 // AddEngine adds a new StorageEngine of name engineName to our Storage object
 func (s *Storage) AddEngine(ctx context.Context, wg *sync.WaitGroup, engineName string, c *Config) error {
+	var err error
+
 	switch engineName {
 	case "graphite":
 		se := StorageEngine{}
@@ -111,6 +120,16 @@ func (s *Storage) AddEngine(ctx context.Context, wg *sync.WaitGroup, engineName 
 		se := StorageEngine{}
 		se.I = NewPrometheusStorage(c)
 		se.AcceptsEvents = false
+		se.AcceptsMetrics = true
+		se.M, se.E = se.I.StartStorageEngine(ctx, wg)
+		s.Engines = append(s.Engines, se)
+	case "riemann":
+		se := StorageEngine{}
+		se.I, err = NewRiemannStorage(c)
+		if err != nil {
+			log.Fatalln("Could not connect to Riemann storage backend:", err)
+		}
+		se.AcceptsEvents = true
 		se.AcceptsMetrics = true
 		se.M, se.E = se.I.StartStorageEngine(ctx, wg)
 		s.Engines = append(s.Engines, se)

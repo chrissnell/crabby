@@ -37,5 +37,11 @@ storage:
         host: prometheus.mysite.org
         port: 9091
         metric-namespace: crabby.crabby-sfo-1
+    riemann:
+        host: riemann.mysite.org
+        port: 5555
+        metric-namespace: crabby.crabby-sfo-1
+        tags:
+            - crabby-sfo-1
 report-internal-metrics: true
 internal-metrics-gathering-interval: 15

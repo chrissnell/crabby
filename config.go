@@ -28,6 +28,7 @@ type StorageConfig struct {
 	Graphite   GraphiteConfig   `yaml:"graphite,omitempty"`
 	Dogstatsd  DogstatsdConfig  `yaml:"dogstatsd,omitempty"`
 	Prometheus PrometheusConfig `yaml:"prometheus,omitempty"`
+	Riemann    RiemannConfig    `yaml:"riemann,omitempty"`
 }
 
 // NewConfig creates an new config object from the given filename.
