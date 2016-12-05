@@ -60,7 +60,7 @@ func (g GraphiteStorage) processMetrics(ctx context.Context, wg *sync.WaitGroup,
 	}
 }
 
-// sendMetric sends a metric value to Graphtie
+// sendMetric sends a metric value to Graphite
 func (g GraphiteStorage) sendMetric(m Metric) error {
 	var metricName string
 
