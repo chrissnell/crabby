@@ -61,6 +61,15 @@ The `storage` dictionary holds configuration for the various metrics storage and
 | `port`     | The port that your Prometheus pushgateway listens on for metrics submission.  Typically 9091. |
 | `namespace`    | A prefix to prepend to all of your metric names.  This gets mapped into a Prometheus grouping.  If you provide a namespace here, a grouping of `crabby => NAMESPACE` is created.  Otherwise, a default grouping of `collector => HOSTNAME` is created.  Useful for when you have more than one Crabby server.    Example:  `crabby.crabby-nyc-01` |
 
+###`riemann` - Riemann server configuration
+
+| Field Name | Description |
+| ---------- | ----------- |
+| `host`     | The hostname for your Prometheus pushgateway server. |
+| `port`     | The port that your Prometheus pushgateway listens on for metrics submission.  Typically 9091. |
+| `namespace`    | A prefix to prepend to all of your metric names.  If you omit `namespace`, "crabby" will be automatically prepended.|
+| `tags`    | A YAML list/array of strings to apply as tags to all submitted events.  If you have more than one Crabby node, it's recommended that you set the hostname of the node as a tag.  Example: `crabby-sfo-01` |
+
 
 ## Internal Metrics Reporting
 Optionally, Crabby can report metrics about itself to your storage backends, including memory (heap) and goroutine usage.  This is especially useful if you are doing development on Crabby and trying to track down runtime problems.
