@@ -110,7 +110,7 @@ func RunSimpleTest(ctx context.Context, j Job, storage *Storage, client *http.Cl
 	switch url.Scheme {
 	case "https":
 		storage.MetricDistributor <- makeMetric(j.Name, "dns_duration", t1.Sub(t0).Seconds()*1000)
-		storage.MetricDistributor <- makeMetric(j.Name, "server_connection_duration", t2.Sub(t0).Seconds()*1000)
+		storage.MetricDistributor <- makeMetric(j.Name, "server_connection_duration", t2.Sub(t1).Seconds()*1000)
 		storage.MetricDistributor <- makeMetric(j.Name, "tls_handshake_duration", t3.Sub(t2).Seconds()*1000)
 		storage.MetricDistributor <- makeMetric(j.Name, "server_processing_duration", t4.Sub(t3).Seconds()*1000)
 		storage.MetricDistributor <- makeMetric(j.Name, "server_response_duration", t5.Sub(t4).Seconds()*1000)
