@@ -9,5 +9,10 @@ if [ -z "${CRABBY_CONFIG}" ]; then
   exit 1
 fi
 
+if [ -n ${CRABBY_START_DELAY} ]; then
+  echo "Delaying Crabby startup by ${CRABBY_START_DELAY} seconds..."
+  sleep ${CRABBY_START_DELAY}
+fi
+
 # Use gosu to drop privileges
 exec gosu nobody /crabby -config=$CRABBY_CONFIG

@@ -23,6 +23,7 @@ services:
     image: chrissnell/crabby
     environment:
     - CRABBY_CONFIG=/config/config.yaml
+    - CRABBY_START_DELAY=3
     volumes:
      - /etc/crabby:/config
     depends_on:
