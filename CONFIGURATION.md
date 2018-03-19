@@ -80,7 +80,7 @@ Optionally, Crabby can report metrics about itself to your storage backends, inc
 | `internal-metrics-gathering-interval`     | How often to gather and report these metrics (seconds).  Defaults to 15. |
 
 
-#Complete Configuration File Example
+# Complete Configuration File Example
 ```yaml
 jobs:
  - name: my_site_some_page
