@@ -1,4 +1,4 @@
-#Crabby Configuration Reference
+# Crabby Configuration Reference
 Crabby is configured by means of a YAML file that's passed via the `-config` command line parameter when you start Crabby.
 ##`jobs` - Configuring pages and URLs to test
 The top-level `jobs` array holds a list of all of the sites and URLs that Crabby will test.  There are two types of tests that Crabby can conduct, `selenium` and `simple`, and these are discussed in [README.md](/README.md).
@@ -23,7 +23,7 @@ The optional `cookies` array holds all cookies to be set for a given job.  **The
 | `value`    | The value of the cookie to be set. |
 | `secure`  | May be `true` or `false`.  If `true`, cookie will only be sent over HTTPS. |
 
-##`selenium` - Selenium server configuration
+## `selenium` - Selenium server configuration
 The `selenium` dictionary holds a few parameters for the Selenium testing service.
 
 | Field Name | Description |
@@ -32,10 +32,10 @@ The `selenium` dictionary holds a few parameters for the Selenium testing servic
 | `job-stagger-offset`   | To avoid launching multiple Selenium jobs at the same time and stressing your crabby server with lots of concurrent browser activity, Crabby staggers the start of the jobs.  If your job has, for example, an interval of 30 seconds, it will be executed every 30 seconds...but, this 30 second interval will not commence at t=0.  Rather, Crabby will choose a random offset for each job that is somewhere between zero and `job-stagger-offset` seconds.  So, if you specify a job `interval` of 30 seconds and a `job-stagger-offset` of 15, Crabby will randomly choose an offset between 0 and 15.  It might choose 7 seconds, in which case your job will execute at t=7s, 37s, 1m7s, 1m37s, and so on... It is recommended that you choose a `job-stagger-offset` that's less than the largest `interval` that you've chosen for your jobs. **TO-DO: Build a better job scheduling algorithm**
 |
 
-##`storage` - Metrics handling configuration
+## `storage` - Metrics handling configuration
 The `storage` dictionary holds configuration for the various metrics storage and handling backends.  Currently, two storage backends are supported, `graphite` and Datadog's `dogstatsd`.
 
-###`graphite` - Graphite server configuration
+### `graphite` - Graphite server configuration
 
 | Field Name | Description |
 | ---------- | ----------- |
@@ -44,7 +44,7 @@ The `storage` dictionary holds configuration for the various metrics storage and
 | `protocol`     | `tcp` or `udp`.  Defaults to `tcp`. |
 | `namespace`    | A prefix to prepend to all of your metric names.  Useful for when you have more than one Crabby server or use your Graphite server for other things.  Example:  `crabby.crabby-nyc-01` |
 
-###`dogstatsd` - Datadog dogstatd configuration
+### `dogstatsd` - Datadog dogstatd configuration
 
 | Field Name | Description |
 | ---------- | ----------- |
@@ -53,7 +53,7 @@ The `storage` dictionary holds configuration for the various metrics storage and
 | `namespace`    | A prefix to prepend to all of your metric names.  Recommened to keep Crabby metrics from getting mixed in with other Datadog metrics.  Example:  `crabby` |
 | `tags`    | A YAML list/array of Datadog tags to apply to all submitted metrics.  If you have more than one Crabby node, it's recommended that you set the hostname of the node as a tag.  Example: `crabby-sfo-01` |
 
-###`prometheus` - Prometheus server configuration
+### `prometheus` - Prometheus server configuration
 
 | Field Name | Description |
 | ---------- | ----------- |
@@ -61,7 +61,7 @@ The `storage` dictionary holds configuration for the various metrics storage and
 | `port`     | The port that your Prometheus pushgateway listens on for metrics submission.  Typically 9091. |
 | `namespace`    | A prefix to prepend to all of your metric names.  This gets mapped into a Prometheus grouping.  If you provide a namespace here, a grouping of `crabby => NAMESPACE` is created.  Otherwise, a default grouping of `collector => HOSTNAME` is created.  Useful for when you have more than one Crabby server.    Example:  `crabby.crabby-nyc-01` |
 
-###`riemann` - Riemann server configuration
+### `riemann` - Riemann server configuration
 
 | Field Name | Description |
 | ---------- | ----------- |
