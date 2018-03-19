@@ -1,6 +1,7 @@
 # Crabby Configuration Reference
 Crabby is configured by means of a YAML file that's passed via the `-config` command line parameter when you start Crabby.
-##`jobs` - Configuring pages and URLs to test
+
+## `jobs` - Configuring pages and URLs to test
 The top-level `jobs` array holds a list of all of the sites and URLs that Crabby will test.  There are two types of tests that Crabby can conduct, `selenium` and `simple`, and these are discussed in [README.md](/README.md).
 Fields:
 
