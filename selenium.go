@@ -163,7 +163,7 @@ func (wr *webRequest) setRemote(remote string) error {
 	wr.wd, err = selenium.NewRemote(caps, remote)
 
 	if err != nil {
-		return fmt.Errorf("Failed to open session %v\n", err)
+		return fmt.Errorf("failed to open session %v\n", err)
 	}
 
 	return nil

@@ -65,28 +65,28 @@ func NewStorage(ctx context.Context, wg *sync.WaitGroup, c *Config) (*Storage, e
 	if c.Storage.Graphite.Host != "" {
 		err = s.AddEngine(ctx, wg, "graphite", c)
 		if err != nil {
-			return &s, fmt.Errorf("Could not add Graphite storage backend: %v\n", err)
+			return &s, fmt.Errorf("could not add Graphite storage backend: %v\n", err)
 		}
 	}
 
 	if c.Storage.Dogstatsd.Host != "" {
 		err = s.AddEngine(ctx, wg, "dogstatsd", c)
 		if err != nil {
-			return &s, fmt.Errorf("Could not add dogstatsd storage backend: %v\n", err)
+			return &s, fmt.Errorf("could not add dogstatsd storage backend: %v\n", err)
 		}
 	}
 
 	if c.Storage.Prometheus.Host != "" {
 		err = s.AddEngine(ctx, wg, "prometheus", c)
 		if err != nil {
-			return &s, fmt.Errorf("Could not start Prometheus storage backend: %v\n", err)
+			return &s, fmt.Errorf("could not start Prometheus storage backend: %v\n", err)
 		}
 	}
 
 	if c.Storage.Riemann.Host != "" {
 		err = s.AddEngine(ctx, wg, "riemann", c)
 		if err != nil {
-			return &s, fmt.Errorf("Could not start Riemann storage backend: %v\n", err)
+			return &s, fmt.Errorf("could not start Riemann storage backend: %v\n", err)
 		}
 	}
 
