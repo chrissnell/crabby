@@ -32,7 +32,7 @@ storage:
         port: 8125
         metric-namespace: crabby.crabby-sfo-1
         tags:
-            - crabby-sfo-1
+            - instance: crabby-sfo-1
     prometheus:
         host: prometheus.mysite.org
         port: 9091
@@ -42,6 +42,8 @@ storage:
         port: 5555
         metric-namespace: crabby.crabby-sfo-1
         tags:
-            - crabby-sfo-1
+            - instance: crabby-sfo-1
 report-internal-metrics: true
 internal-metrics-gathering-interval: 15
+server-tags:
+    - region: us-east-1
