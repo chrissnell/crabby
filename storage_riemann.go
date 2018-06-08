@@ -12,10 +12,10 @@ import (
 // RiemannConfig describes the YAML-provided configuration for a Riemann
 // storage backend
 type RiemannConfig struct {
-	Host      string   `yaml:"host"`
-	Port      int      `yaml:"port"`
-	Namespace string   `yaml:"metric-namespace,omitempty"`
-	Tags      []string `yaml:"tags,omitempty"`
+	Host      string            `yaml:"host"`
+	Port      int               `yaml:"port"`
+	Namespace string            `yaml:"metric-namespace,omitempty"`
+	Tags      map[string]string `yaml:"tags,omitempty"`
 }
 
 // RiemannStorage holds the configuration for a Riemann storage backend
@@ -30,7 +30,10 @@ func NewRiemannStorage(c *Config) (RiemannStorage, error) {
 	r := RiemannStorage{}
 
 	r.Namespace = c.Storage.Riemann.Namespace
-	r.Tags = c.Storage.Riemann.Tags
+
+	for k, v := range c.Storage.Riemann.Tags {
+		r.Tags = append(r.Tags, k+":"+v)
+	}
 
 	r.Client = goryman.NewGorymanClient(fmt.Sprint(c.Storage.Riemann.Host, ":", c.Storage.Riemann.Port))
 	err := r.Client.Connect()
