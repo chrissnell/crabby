@@ -93,6 +93,10 @@ func (r RiemannStorage) sendMetric(m Metric) error {
 		Tags:    r.Tags,
 	}
 
+	for k, v := range m.Tags {
+		ev.Tags = append(ev.Tags, k+":"+v)
+	}
+
 	err := r.Client.SendEvent(ev)
 	if err != nil {
 		return err
@@ -122,6 +126,10 @@ func (r RiemannStorage) sendEvent(e Event) error {
 		Service: eventName,
 		State:   state,
 		Tags:    r.Tags,
+	}
+
+	for k, v := range e.Tags {
+		ev.Tags = append(ev.Tags, k+":"+v)
 	}
 
 	err := r.Client.SendEvent(ev)

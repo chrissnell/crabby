@@ -12,10 +12,10 @@ import (
 // DogstatsdConfig describes the YAML-provided configuration for a Datadog
 // DogstatsD storage backend
 type DogstatsdConfig struct {
-	Host      string   `yaml:"host"`
-	Port      int      `yaml:"port"`
-	Namespace string   `yaml:"metric-namespace"`
-	Tags      []string `yaml:"tags,omitempty"`
+	Host      string            `yaml:"host"`
+	Port      int               `yaml:"port"`
+	Namespace string            `yaml:"metric-namespace"`
+	Tags      map[string]string `yaml:"tags,omitempty"`
 }
 
 // DogstatsdStorage holds the configuration for a DogstatsD storage backend
@@ -69,6 +69,11 @@ func (d DogstatsdStorage) sendMetric(m Metric) error {
 		metricName = fmt.Sprintf("%v.%v", d.Namespace, m.Name)
 	}
 
+	// Add all of our metric tags to the metric payload
+	for k, v := range m.Tags {
+		d.DogstatsdConn.Tags = append(d.DogstatsdConn.Tags, k+":"+v)
+	}
+
 	err := d.DogstatsdConn.TimeInMilliseconds(metricName, m.Value, nil, 1)
 	if err != nil {
 		log.Printf("Could not send metric %v: %v\n", m.Name, err)
@@ -100,14 +105,15 @@ func (d DogstatsdStorage) sendEvent(e Event) error {
 		Message: fmt.Sprintf("%v is returning a HTTP status code of %v", e.Name, e.ServerStatus),
 	}
 
+	// Add all of our metric tags to the metric payload
+	for k, v := range e.Tags {
+		d.DogstatsdConn.Tags = append(d.DogstatsdConn.Tags, k+":"+v)
+	}
+
 	if (e.ServerStatus < 400) && (e.ServerStatus > 0) {
 		sc.Status = statsd.Ok
 	} else {
 		sc.Status = statsd.Critical
-	}
-
-	for _, t := range d.DogstatsdConn.Tags {
-		sc.Tags = append(sc.Tags, t)
 	}
 
 	err := d.DogstatsdConn.ServiceCheck(sc)
@@ -127,8 +133,8 @@ func NewDogstatsdStorage(c *Config) DogstatsdStorage {
 		log.Println("Warning: could not create dogstatsd connection", err)
 	}
 
-	for _, t := range c.Storage.Dogstatsd.Tags {
-		d.DogstatsdConn.Tags = append(d.DogstatsdConn.Tags, t)
+	for k, v := range c.Storage.Dogstatsd.Tags {
+		d.DogstatsdConn.Tags = append(d.DogstatsdConn.Tags, k+":"+v)
 	}
 	return d
 }
