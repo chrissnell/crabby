@@ -85,9 +85,9 @@ func (r RiemannStorage) sendMetric(m Metric) error {
 	var metricName string
 
 	if r.Namespace == "" {
-		metricName = fmt.Sprintf("crabby.%v", m.Name)
+		metricName = fmt.Sprintf("crabby.%v.%v", m.Name, m.Timing)
 	} else {
-		metricName = fmt.Sprintf("%v.%v", r.Namespace, m.Name)
+		metricName = fmt.Sprintf("%v.%v.%v", r.Namespace, m.Name, m.Timing)
 	}
 
 	ev := &goryman.Event{
