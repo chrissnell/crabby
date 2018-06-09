@@ -12,10 +12,9 @@ import (
 // DogstatsdConfig describes the YAML-provided configuration for a Datadog
 // DogstatsD storage backend
 type DogstatsdConfig struct {
-	Host      string            `yaml:"host"`
-	Port      int               `yaml:"port"`
-	Namespace string            `yaml:"metric-namespace"`
-	Tags      map[string]string `yaml:"tags,omitempty"`
+	Host      string `yaml:"host"`
+	Port      int    `yaml:"port"`
+	Namespace string `yaml:"metric-namespace"`
 }
 
 // DogstatsdStorage holds the configuration for a DogstatsD storage backend
@@ -133,8 +132,5 @@ func NewDogstatsdStorage(c *Config) DogstatsdStorage {
 		log.Println("Warning: could not create dogstatsd connection", err)
 	}
 
-	for k, v := range c.Storage.Dogstatsd.Tags {
-		d.DogstatsdConn.Tags = append(d.DogstatsdConn.Tags, k+":"+v)
-	}
 	return d
 }
