@@ -12,10 +12,9 @@ import (
 // RiemannConfig describes the YAML-provided configuration for a Riemann
 // storage backend
 type RiemannConfig struct {
-	Host      string   `yaml:"host"`
-	Port      int      `yaml:"port"`
-	Namespace string   `yaml:"metric-namespace,omitempty"`
-	Tags      []string `yaml:"tags,omitempty"`
+	Host      string `yaml:"host"`
+	Port      int    `yaml:"port"`
+	Namespace string `yaml:"metric-namespace,omitempty"`
 }
 
 // RiemannStorage holds the configuration for a Riemann storage backend
@@ -30,7 +29,6 @@ func NewRiemannStorage(c *Config) (RiemannStorage, error) {
 	r := RiemannStorage{}
 
 	r.Namespace = c.Storage.Riemann.Namespace
-	r.Tags = c.Storage.Riemann.Tags
 
 	r.Client = goryman.NewGorymanClient(fmt.Sprint(c.Storage.Riemann.Host, ":", c.Storage.Riemann.Port))
 	err := r.Client.Connect()
@@ -82,15 +80,19 @@ func (r RiemannStorage) sendMetric(m Metric) error {
 	var metricName string
 
 	if r.Namespace == "" {
-		metricName = fmt.Sprintf("crabby.%v", m.Name)
+		metricName = fmt.Sprintf("crabby.%v.%v", m.Name, m.Timing)
 	} else {
-		metricName = fmt.Sprintf("%v.%v", r.Namespace, m.Name)
+		metricName = fmt.Sprintf("%v.%v.%v", r.Namespace, m.Name, m.Timing)
 	}
 
 	ev := &goryman.Event{
 		Service: metricName,
 		Metric:  m.Value,
 		Tags:    r.Tags,
+	}
+
+	for k, v := range m.Tags {
+		ev.Tags = append(ev.Tags, k+":"+v)
 	}
 
 	err := r.Client.SendEvent(ev)
@@ -122,6 +124,10 @@ func (r RiemannStorage) sendEvent(e Event) error {
 		Service: eventName,
 		State:   state,
 		Tags:    r.Tags,
+	}
+
+	for k, v := range e.Tags {
+		ev.Tags = append(ev.Tags, k+":"+v)
 	}
 
 	err := r.Client.SendEvent(ev)

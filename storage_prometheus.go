@@ -18,11 +18,28 @@ type PrometheusConfig struct {
 	Namespace string `yaml:"metric-namespace,omitempty"`
 }
 
+// CurrentMetrics is a map of Metrics + a mutex that maintains the most recent metrics
+// that we are collecting.  These are maintained so that a Prometheus client can connect
+// to the built-in Prometheus endpoint and fetch the very latest result for this
+// metric.
+type CurrentMetrics struct {
+	metrics map[string]MetricStore
+	sync.RWMutex
+}
+
+// MetricStore holds a Prometheus GaugeVec for a given metric
+type MetricStore struct {
+	name     string
+	timing   string
+	gaugeVec prometheus.GaugeVec
+}
+
 // PrometheusStorage holds the configuration for a Graphite storage backend
 type PrometheusStorage struct {
-	Namespace string
-	Registry  *prometheus.Registry
-	url       string
+	Namespace      string
+	Registry       *prometheus.Registry
+	url            string
+	currentMetrics *CurrentMetrics
 }
 
 // NewPrometheusStorage sets up a new Prometheus storage backend
@@ -61,10 +78,7 @@ func (p PrometheusStorage) processMetrics(ctx context.Context, wg *sync.WaitGrou
 	for {
 		select {
 		case m := <-mchan:
-			err := p.sendMetric(m)
-			if err != nil {
-				log.Println(err)
-			}
+			p.storeCurrentMetric(m)
 		case <-ctx.Done():
 			log.Println("Cancellation request recieved.  Cancelling metrics processor.")
 			return
@@ -104,4 +118,48 @@ func (p PrometheusStorage) sendMetric(m Metric) error {
 func (p PrometheusStorage) sendEvent(e Event) error {
 	var err error
 	return err
+}
+
+func (p PrometheusStorage) storeCurrentMetric(m Metric) {
+	p.currentMetrics.Lock()
+	defer p.currentMetrics.Unlock()
+
+	// See if this metric name exists in the current metrics map
+	cm, exists := p.currentMetrics.metrics[m.Timing]
+
+	// If the metric doesn't exist, create a new MetricsStore and Gauge for it
+	if !exists {
+		var glabel []string
+
+		for k := range m.Tags {
+			glabel = append(glabel, k)
+		}
+
+		gauge := prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Name: m.Timing,
+			}, glabel,
+		)
+
+		// Create a MetricsStore/Gauge
+		ms := MetricStore{
+			name:     m.Name,
+			gaugeVec: *gauge,
+		}
+
+		// ...and add that to our map
+		p.currentMetrics.metrics[m.Name] = ms
+
+		// Register the Gauge with Prometheus
+		prometheus.MustRegister(p.currentMetrics.metrics[m.Timing].gaugeVec)
+
+	} else {
+		labels := prometheus.Labels{}
+		for k, v := range m.Tags {
+			labels[k] = v
+		}
+		labels["name"] = m.Name
+		cm.gaugeVec.With(labels).Set(m.Value)
+	}
+
 }

@@ -6,17 +6,19 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 )
 
 // Job holds a single Selenium
 type Job struct {
-	Name     string   `yaml:"name"`
-	URL      string   `yaml:"url"`
-	Type     string   `yaml:"type"`
-	Interval uint16   `yaml:"interval"`
-	Cookies  []Cookie `yaml:"cookies,omitempty"`
+	Name     string            `yaml:"name"`
+	URL      string            `yaml:"url"`
+	Type     string            `yaml:"type"`
+	Tags     map[string]string `yaml:"tags,omitempty"`
+	Interval uint16            `yaml:"interval"`
+	Cookies  []Cookie          `yaml:"cookies,omitempty"`
 }
 
 // JobRunner holds channels and state related to running Jobs
@@ -72,6 +74,8 @@ func StartJobs(ctx context.Context, wg *sync.WaitGroup, c *Config, storage *Stor
 
 	for _, j := range jobs {
 
+		j.populateAutomaticTags(c)
+
 		// If we've been provided with an offset for staggering jobs, sleep for a random
 		// time interval (where: 0 < sleepDur < offset) before starting that job's timer
 		if c.Selenium.JobStaggerOffset > 0 {
@@ -84,4 +88,22 @@ func StartJobs(ctx context.Context, wg *sync.WaitGroup, c *Config, storage *Stor
 		go runJob(ctx, wg, j, jr.JobChan, seleniumServer, storage, client)
 	}
 
+}
+
+func (j *Job) populateAutomaticTags(c *Config) {
+	u, err := url.Parse(j.URL)
+	if err != nil {
+		return
+	}
+
+	// Add all of our server tags
+	for k, v := range c.ServerTags {
+		j.Tags[k] = v
+	}
+
+	// Add the hostname from our job
+	j.Tags["crabby.job_hostname"] = u.Hostname()
+
+	// Add the type of check (simple, selenium)
+	j.Tags["crabby.job_type"] = j.Type
 }

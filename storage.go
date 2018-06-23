@@ -11,7 +11,9 @@ import (
 // Metric holds one metric data point
 type Metric struct {
 	Name      string
+	Timing    string
 	Value     float64
+	Tags      map[string]string
 	Timestamp time.Time
 }
 
@@ -19,6 +21,7 @@ type Metric struct {
 type Event struct {
 	Name         string
 	ServerStatus int
+	Tags         map[string]string
 	Timestamp    time.Time
 }
 
@@ -168,24 +171,33 @@ func (s *Storage) storageDistributor(ctx context.Context, wg *sync.WaitGroup) er
 }
 
 // makeMetric creates a Metric from raw values and metric names
-func makeMetric(name string, timing string, value float64) Metric {
+func makeMetric(j Job, timing string, value float64) Metric {
 
 	m := Metric{
-		Name:      fmt.Sprintf("%v.%v", name, timing),
+		Name:      j.Name,
+		Timing:    timing,
 		Value:     value,
 		Timestamp: time.Now(),
+	}
+
+	for k, v := range j.Tags {
+		m.Tags[k] = v
 	}
 
 	return m
 }
 
 // makeEvent creates an Event from raw values and event names
-func makeEvent(name string, status int) Event {
+func makeEvent(j Job, status int) Event {
 
 	e := Event{
-		Name:         name,
+		Name:         j.Name,
 		ServerStatus: status,
 		Timestamp:    time.Now(),
+	}
+
+	for k, v := range j.Tags {
+		e.Tags[k] = v
 	}
 
 	return e
