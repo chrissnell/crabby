@@ -90,6 +90,13 @@ func NewStorage(ctx context.Context, wg *sync.WaitGroup, c *Config) (*Storage, e
 		}
 	}
 
+	if c.Storage.InfluxDB.Host != "" {
+		err = s.AddEngine(ctx, wg, "influxdb", c)
+		if err != nil {
+			return &s, fmt.Errorf("could not start InfluxDB storage backend: %v", err)
+		}
+	}
+
 	// Start our storage distributor to distribute received metrics and events
 	// to storage backends
 	go s.storageDistributor(ctx, wg)
@@ -130,6 +137,13 @@ func (s *Storage) AddEngine(ctx context.Context, wg *sync.WaitGroup, engineName 
 			log.Fatalln("Could not connect to Riemann storage backend:", err)
 		}
 		se.AcceptsEvents = true
+		se.AcceptsMetrics = true
+		se.M, se.E = se.I.StartStorageEngine(ctx, wg)
+		s.Engines = append(s.Engines, se)
+	case "influxdb":
+		se := StorageEngine{}
+		se.I = NewInfluxDBStorage(c)
+		se.AcceptsEvents = false
 		se.AcceptsMetrics = true
 		se.M, se.E = se.I.StartStorageEngine(ctx, wg)
 		s.Engines = append(s.Engines, se)

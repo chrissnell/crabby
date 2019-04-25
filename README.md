@@ -12,12 +12,13 @@
 - Server response time
 - DOM rendering time
 
-Crabby currently supports four types of metrics delivery:
+Crabby currently supports five types of metrics delivery:
 
 * Graphite - Time measurements as metrics using Carbon protocol over TCP or UDP
 * Datadog API - Time measurements as metrics; HTTP response codes as service check
 * Prometheus - Time measurements as metrics, sent to Prometheus pushgateway
 * Riemann - Time measurements as metric events; HTTP response codes as state events
+* InfluxDB - Time measurements as metrics using the InfluxDB wire protocol over HTTP
 
 # Two Types of Performance Measuring
 Crabby has two types of probes for measuring website performance:
@@ -36,6 +37,9 @@ Crabby speaks the Carbon protocol via TCP or UDP for sending performance metrics
 Crabby supports the sending of performance metrics to Datadog for use in graphical dashboards and alerting.  Using Datadog's anomaly detection capability, you can even configure alerts to trigger when site performance suddenly degrades.  When using the `simple` collector, Crabby can also collect HTTP response codes and send a failed service check to Datadog to trigger an alert if a 400- or 500-series error is detected.
 
 ![Multi-POP Performance Graph in Grafana](https://chrissnell.github.io/crabby/images/crabby-datadog.png "Graphing Crabby metrics in a Datadog dashboard")
+
+## InfluxDB
+Crabby can send metrics to InfluxDB over HTTP/HTTPS.  This is implemented using Influxdata's "v2" client for InfluxDB 1.x.  Crabby can talk to InfluxDB directly or you can stand up a Telegraf instance to relay the metrics to InfluxDB (or some other datastore).  
 
 ## Prometheus
 Crabby has experimental support for sending metrics to Prometheus via a pushgateway.  The `config.yaml` in the `examples` directory will get you started.  If you specify a namespace, it will be applied as a grouping: `crabby => NAMESPACE`.  Otherwise, it uses a default grouping of `instance => HOSTNAME`.
