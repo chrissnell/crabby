@@ -72,6 +72,15 @@ The `storage` dictionary holds configuration for the various metrics storage and
 | `tags`    | A YAML list/array of strings to apply as tags to all submitted events.  If you have more than one Crabby node, it's recommended that you set the hostname of the node as a tag.  Example: `crabby-sfo-01` |
 
 
+### `influxdb` - InfluxDB server configuration
+
+| Field Name | Description |
+| ---------- | ----------- |
+| `host`     | The hostname for your Graphite server. |
+| `port`     | The port that your Graphite server listens on for metrics submission.  Typically 2003. |
+| `protocol`     | `tcp` or `udp`.  Defaults to `tcp`. |
+| `namespace`    | A prefix to prepend to all of your metric names.  Useful for when you have more than one Crabby server or use your Graphite server for other things.  Example:  `crabby.crabby-nyc-01` |
+
 ## Internal Metrics Reporting
 Optionally, Crabby can report metrics about itself to your storage backends, including memory (heap) and goroutine usage.  This is especially useful if you are doing development on Crabby and trying to track down runtime problems.
 
@@ -118,6 +127,10 @@ storage:
         metric-namespace: crabby
         tags:
             - crabby-sfo-1
+    influxdb:
+        host: telegraf.mysite.org
+        port: 8086
+        metric-namespace: crabby
 report-internal-metrics: true
 internal-metrics-gathering-interval: 15
 ```
