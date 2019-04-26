@@ -22,6 +22,7 @@ type GeneralConfig struct {
 	StationName     string `yaml:"hostname,omitempty"`
 	StationLocation string `yaml:"location,omitempty"`
 	StationProvider string `yaml:"provider,omitempty"`
+	RequestTimeout  string `yaml:"request-timeout,omitempty"`
 }
 
 // SeleniumConfig holds the configuration for our Selenium service
