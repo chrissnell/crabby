@@ -1,6 +1,17 @@
 # Crabby Configuration Reference
 Crabby is configured by means of a YAML file that's passed via the `-config` command line parameter when you start Crabby.
 
+## `general` - General configuration options
+This holds general configuration for the Crabby site and service.
+Fields:
+
+| Field Name     | Description |
+| -------------- | ----------- |
+| `hostname`     | The hostname of this Crabby server (optional) |
+| `location`     | The geographical location of this Crabby server (optional) |
+| `provider`     | The hosting or network provider for this Crabby server (optional) |
+| `request-timeout` | The timeout to use when making HTTP requests for jobs (default: 15s) |
+
 ## `jobs` - Configuring pages and URLs to test
 The top-level `jobs` array holds a list of all of the sites and URLs that Crabby will test.  There are two types of tests that Crabby can conduct, `selenium` and `simple`, and these are discussed in [README.md](/README.md).
 Fields:

@@ -50,8 +50,20 @@ func main() {
 		DisableKeepAlives: true,
 	}
 
+	var requestTimeout time.Duration
+
+	if c.General.RequestTimeout == "" {
+		requestTimeout = 15 * time.Second
+	} else {
+		requestTimeout, err = time.ParseDuration(c.General.RequestTimeout)
+		if err != nil {
+			log.Fatalln("could not parse request timeout duration in config:", err)
+		}
+	}
+
 	client := &http.Client{
 		Transport: tr,
+		Timeout:   requestTimeout,
 	}
 
 	defer tr.CloseIdleConnections()
