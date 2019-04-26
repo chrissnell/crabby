@@ -64,14 +64,14 @@ func (d DogstatsdStorage) sendMetric(m Metric) error {
 	var metricName string
 
 	if d.Namespace == "" {
-		metricName = fmt.Sprintf("crabby.%v", m.Name)
+		metricName = fmt.Sprintf("crabby.%v.%v", m.Job, m.Timing)
 	} else {
-		metricName = fmt.Sprintf("%v.%v", d.Namespace, m.Name)
+		metricName = fmt.Sprintf("%v.%v.%v", d.Namespace, m.Job, m.Timing)
 	}
 
 	err := d.DogstatsdConn.TimeInMilliseconds(metricName, m.Value, nil, 1)
 	if err != nil {
-		log.Printf("Could not send metric %v: %v\n", m.Name, err)
+		log.Printf("Could not send metric %v: %v\n", metricName, err)
 		return err
 	}
 

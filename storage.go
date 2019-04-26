@@ -10,7 +10,8 @@ import (
 
 // Metric holds one metric data point
 type Metric struct {
-	Name      string
+	Job       string
+	Timing    string
 	Value     float64
 	Timestamp time.Time
 }
@@ -185,7 +186,8 @@ func (s *Storage) storageDistributor(ctx context.Context, wg *sync.WaitGroup) er
 func makeMetric(name string, timing string, value float64) Metric {
 
 	m := Metric{
-		Name:      fmt.Sprintf("%v.%v", name, timing),
+		Job:       name,
+		Timing:    timing,
 		Value:     value,
 		Timestamp: time.Now(),
 	}
