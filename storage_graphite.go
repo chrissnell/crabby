@@ -67,9 +67,9 @@ func (g GraphiteStorage) sendMetric(m Metric) error {
 	valStr := strconv.FormatFloat(m.Value, 'f', 3, 64)
 
 	if g.Namespace == "" {
-		metricName = fmt.Sprintf("crabby.%v", m.Name)
+		metricName = fmt.Sprintf("crabby.%v.%v", m.Job, m.Timing)
 	} else {
-		metricName = fmt.Sprintf("%v.%v", g.Namespace, m.Name)
+		metricName = fmt.Sprintf("%v.%v.%v", g.Namespace, m.Job, m.Timing)
 	}
 
 	if m.Timestamp.IsZero() {
@@ -89,7 +89,7 @@ func (g GraphiteStorage) sendMetric(m Metric) error {
 
 	err := g.GraphiteConn.SendMetric(gm)
 	if err != nil {
-		log.Printf("Could not send metric %v: %v\n", m.Name, err)
+		log.Printf("Could not send metric %v: %v\n", metricName, err)
 		return err
 	}
 

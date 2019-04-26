@@ -70,9 +70,9 @@ func (i InfluxDBStorage) sendMetric(m Metric) error {
 	var metricName string
 
 	if i.Namespace == "" {
-		metricName = fmt.Sprintf("crabby.%v", m.Name)
+		metricName = fmt.Sprintf("crabby.%v", m.Job)
 	} else {
-		metricName = fmt.Sprintf("%v.%v", i.Namespace, m.Name)
+		metricName = fmt.Sprintf("%v.%v", i.Namespace, m.Job)
 	}
 
 	// Create a new point batch
@@ -82,9 +82,9 @@ func (i InfluxDBStorage) sendMetric(m Metric) error {
 	})
 
 	// Make a map to store the metric name/value pair
-	values := map[string]interface{}{metricName: m.Value}
+	values := map[string]interface{}{m.Timing: m.Value}
 
-	pt, err := client.NewPoint("crabby_reading", i.Tags, values, m.Timestamp)
+	pt, err := client.NewPoint(metricName, i.Tags, values, m.Timestamp)
 
 	if err != nil {
 		return fmt.Errorf("Could not create data point for InfluxDB: %v", err)

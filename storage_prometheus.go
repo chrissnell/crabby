@@ -79,10 +79,10 @@ func (p PrometheusStorage) sendMetric(m Metric) error {
 	grouping := make(map[string]string)
 
 	if p.Namespace == "" {
-		metricName = fmt.Sprintf("crabby.%v", m.Name)
+		metricName = fmt.Sprintf("crabby.%v.%v", m.Job, m.Timing)
 		grouping = push.HostnameGroupingKey()
 	} else {
-		metricName = fmt.Sprintf("%v.%v", p.Namespace, m.Name)
+		metricName = fmt.Sprintf("%v.%v.%v", p.Namespace, m.Job, m.Timing)
 		grouping["crabby"] = p.Namespace
 	}
 
