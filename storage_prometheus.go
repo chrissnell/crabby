@@ -4,33 +4,40 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
+	"os"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/push"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // PrometheusConfig describes the YAML-provided configuration for a Prometheus
 // pushgateway storage backend
 type PrometheusConfig struct {
-	Host      string `yaml:"host"`
-	Port      int    `yaml:"port"`
-	Namespace string `yaml:"metric-namespace,omitempty"`
+	ListenAddr string `yaml:"listen-addr"`
+	Namespace  string `yaml:"metric-namespace,omitempty"`
 }
 
 // PrometheusStorage holds the configuration for a Graphite storage backend
 type PrometheusStorage struct {
-	Namespace string
-	Registry  *prometheus.Registry
-	url       string
+	ListenAddr        string
+	Namespace         string
+	Registry          *prometheus.Registry
+	RegisteredMetrics map[string]prometheus.Gauge
 }
 
 // NewPrometheusStorage sets up a new Prometheus storage backend
 func NewPrometheusStorage(c *Config) PrometheusStorage {
 	p := PrometheusStorage{}
 
-	p.Namespace = c.Storage.Prometheus.Namespace
-	p.url = fmt.Sprint(c.Storage.Prometheus.Host, ":", c.Storage.Prometheus.Port)
+	p.RegisteredMetrics = make(map[string]prometheus.Gauge)
+
+	p.Namespace = strings.ReplaceAll(c.Storage.Prometheus.Namespace, "-", "_")
+
+	p.ListenAddr = c.Storage.Prometheus.ListenAddr
 
 	p.Registry = prometheus.NewRegistry()
 
@@ -50,6 +57,39 @@ func (p PrometheusStorage) StartStorageEngine(ctx context.Context, wg *sync.Wait
 
 	// Start processing the metrics we receive
 	go p.processMetrics(ctx, wg, metricChan)
+
+	logger := log.New(os.Stdout, "", log.LstdFlags)
+
+	server := &http.Server{
+		Addr:         p.ListenAddr,
+		ErrorLog:     logger,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  15 * time.Second,
+	}
+
+	http.Handle("/metrics", promhttp.HandlerFor(p.Registry, promhttp.HandlerOpts{
+		ErrorLog: log.New(os.Stdout, "", log.LstdFlags),
+	}))
+
+	// Run our server in a goroutine so that it doesn't block.
+	go func() {
+		err := http.ListenAndServe(p.ListenAddr, nil)
+		if err != nil {
+			log.Fatalf("unable to start Prometheus listener: %s\n", err)
+		}
+	}()
+
+	go func(ctx context.Context) {
+		for {
+			select {
+			case <-ctx.Done():
+				log.Println("Cancellation request received.  Cancelling job runner.")
+				server.Shutdown(ctx)
+				return
+			}
+		}
+	}(ctx)
 
 	return metricChan, eventChan
 }
@@ -76,26 +116,29 @@ func (p PrometheusStorage) processMetrics(ctx context.Context, wg *sync.WaitGrou
 func (p PrometheusStorage) sendMetric(m Metric) error {
 	var metricName string
 
-	grouping := make(map[string]string)
-
 	if p.Namespace == "" {
-		metricName = fmt.Sprintf("crabby.%v.%v", m.Job, m.Timing)
-		grouping = push.HostnameGroupingKey()
+		metricName = fmt.Sprintf("crabby_%v_%v", m.Job, m.Timing)
 	} else {
-		metricName = fmt.Sprintf("%v.%v.%v", p.Namespace, m.Job, m.Timing)
-		grouping["crabby"] = p.Namespace
+		metricName = fmt.Sprintf("%v_%v_%v", p.Namespace, m.Job, m.Timing)
 	}
 
-	pm := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: metricName,
-		Help: "Crabby timing metric, in milliseconds",
-	})
+	metricName = strings.ReplaceAll(metricName, ".", "_")
 
-	pm.Set(m.Value)
+	log.Println("METRIC->", metricName)
 
-	p.Registry.MustRegister(pm)
+	_, present := p.RegisteredMetrics[metricName]
 
-	push.AddFromGatherer("crabby", grouping, p.url, p.Registry)
+	if present {
+		p.RegisteredMetrics[metricName].Set(m.Value)
+	} else {
+		p.RegisteredMetrics[metricName] = prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Name: metricName,
+				Help: "Crabby timing metric, in milliseconds",
+			},
+		)
+		p.Registry.MustRegister(p.RegisteredMetrics[metricName])
+	}
 
 	return nil
 }
