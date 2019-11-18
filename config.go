@@ -19,10 +19,11 @@ type Config struct {
 
 // GeneralConfig holds general configuration for this Crabby instance
 type GeneralConfig struct {
-	StationName     string `yaml:"hostname,omitempty"`
-	StationLocation string `yaml:"location,omitempty"`
-	StationProvider string `yaml:"provider,omitempty"`
-	RequestTimeout  string `yaml:"request-timeout,omitempty"`
+	StationName         string `yaml:"hostname,omitempty"`
+	StationLocation     string `yaml:"location,omitempty"`
+	StationProvider     string `yaml:"provider,omitempty"`
+	RequestTimeout      string `yaml:"request-timeout,omitempty"`
+	JobConfigurationURL string `yaml:"job-configuration-url,omitempty"`
 }
 
 // SeleniumConfig holds the configuration for our Selenium service
@@ -53,8 +54,8 @@ func NewConfig(filename *string) (*Config, error) {
 		return &Config{}, err
 	}
 
-	if len(c.Jobs) == 0 {
-		log.Fatalln("No jobs were configured!")
+	if len(c.Jobs) == 0 && c.General.JobConfigurationURL == "" {
+		log.Fatalln("No jobs or job configuration URL were configured!")
 	}
 
 	return &c, nil
