@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"sync"
 	"time"
-
-	"gopkg.in/yaml.v2"
 )
 
 // Job holds a single job to be run
@@ -29,6 +27,7 @@ type JobConfig struct {
 
 // JobRunner holds channels and state related to running Jobs
 type JobRunner struct {
+	ctx     context.Context
 	JobChan chan<- Job
 	WG      sync.WaitGroup
 	Client  *http.Client
@@ -36,8 +35,10 @@ type JobRunner struct {
 }
 
 // NewJobRunner returns as JobRunner
-func NewJobRunner() *JobRunner {
-	jr := JobRunner{}
+func NewJobRunner(ctx context.Context) *JobRunner {
+	jr := JobRunner{
+		ctx: ctx,
+	}
 
 	jr.JobChan = make(chan Job, 10)
 
@@ -45,7 +46,7 @@ func NewJobRunner() *JobRunner {
 }
 
 // runJob executes the job on a Ticker interval
-func runJob(ctx context.Context, wg *sync.WaitGroup, j Job, jchan chan<- Job, seleniumServer string, storage *Storage, client *http.Client) {
+func (jr *JobRunner) runJob(wg *sync.WaitGroup, j Job, seleniumServer string, storage *Storage, client *http.Client) {
 	jobTicker := time.NewTicker(time.Duration(j.Interval) * time.Second)
 
 	wg.Add(1)
@@ -58,12 +59,12 @@ func runJob(ctx context.Context, wg *sync.WaitGroup, j Job, jchan chan<- Job, se
 			case "selenium":
 				RunSeleniumTest(j, seleniumServer, storage)
 			case "simple":
-				go RunSimpleTest(ctx, j, storage, client)
+				go RunSimpleTest(jr.ctx, j, storage, client)
 			default:
 				// We run Selenium tests by default
 				RunSeleniumTest(j, seleniumServer, storage)
 			}
-		case <-ctx.Done():
+		case <-jr.ctx.Done():
 			log.Println("Cancellation request received.  Cancelling job runner.")
 			return
 		}
@@ -73,41 +74,20 @@ func runJob(ctx context.Context, wg *sync.WaitGroup, j Job, jchan chan<- Job, se
 
 // StartJobs launches all configured jobs
 func StartJobs(ctx context.Context, wg *sync.WaitGroup, c *Config, storage *Storage, client *http.Client) {
-	var cfg JobConfig
 	var jobs []Job
-	var err error
 
-	// Create a sub-context of the main context.Context that we can cancel when we want to restart
-	// jobs.
+	jobs = c.Jobs
 
-	jobsCtx, cancel := context.WithCancel(ctx)
-
-	// If a job configuration URL was provided, attempt to fetch it and populate our jobs
-	// from it.
-	if c.General.JobConfigurationURL != "" {
-		cfg, err = fetchConfiguration(ctx, c, client)
-		if err != nil {
-			log.Fatalln("Error fetching job configuration:", err)
-		}
-
-		if len(cfg.Jobs) == 0 {
-			log.Fatalln("Job configuration URL returned no jobs")
-		}
-
-		jobs = cfg.Jobs
-	} else {
-		// No job configuration URL was provided, so we'll run the jobs specified in the local
-		// configuration file.
-		jobs = c.Jobs
-	}
-
-	jr := NewJobRunner()
+	jr := NewJobRunner(ctx)
 
 	seleniumServer := c.Selenium.URL
 
 	rand.Seed(time.Now().Unix())
 
 	for _, j := range jobs {
+
+		// Merge the global tags with the per-job tags.  Per-job tags take precidence.
+		j.Tags = mergeTags(j.Tags, c.General.Tags)
 
 		// If we've been provided with an offset for staggering jobs, sleep for a random
 		// time interval (where: 0 < sleepDur < offset) before starting that job's timer
@@ -118,25 +98,29 @@ func StartJobs(ctx context.Context, wg *sync.WaitGroup, c *Config, storage *Stor
 		}
 
 		log.Println("Launching job -> ", j.URL)
-		go runJob(jobsCtx, wg, j, jr.JobChan, seleniumServer, storage, client)
+		go jr.runJob(wg, j, seleniumServer, storage, client)
 	}
 
 }
 
-func fetchConfiguration(ctx context.Context, c *Config, client *http.Client) (JobConfig, error) {
-	var cfg JobConfig
-	r, err := client.Get(c.General.JobConfigurationURL)
-	if err != nil {
-		return JobConfig{}, err
+func mergeTags(jobTags map[string]string, globalTags map[string]string) map[string]string {
+	mergedTags := make(map[string]string)
+
+	// If we don't have any global tags or job tags, just return an empty map
+	if len(jobTags) == 0 && len(globalTags) == 0 {
+		return mergedTags
 	}
 
-	defer r.Body.Close()
-
-	if r.StatusCode >= 400 || r.StatusCode < 200 {
-		return JobConfig{}, fmt.Errorf("job configuration fetch returned status %v", r.StatusCode)
+	for k, v := range jobTags {
+		mergedTags[k] = v
 	}
 
-	err = yaml.NewDecoder(r.Body).Decode(&cfg)
+	for k, v := range globalTags {
+		// Add the global tags to the merged tags, but only if they weren't overriden by a job tag
+		if mergedTags[k] != "" {
+			mergedTags[k] = v
+		}
+	}
 
-	return cfg, err
+	return mergedTags
 }

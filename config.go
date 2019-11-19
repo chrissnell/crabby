@@ -19,11 +19,12 @@ type Config struct {
 
 // GeneralConfig holds general configuration for this Crabby instance
 type GeneralConfig struct {
-	Tags            map[string]string `yaml:"tags,omitempty"`
-	StationName     string            `yaml:"hostname,omitempty"`
-	StationLocation string            `yaml:"location,omitempty"`
-	StationProvider string            `yaml:"provider,omitempty"`
-	RequestTimeout  string            `yaml:"request-timeout,omitempty"`
+	Tags                map[string]string `yaml:"tags"`
+	JobConfigurationURL string            `yaml:"job-configuration-url,omitempty"`
+	StationName         string            `yaml:"hostname,omitempty"`
+	StationLocation     string            `yaml:"location,omitempty"`
+	StationProvider     string            `yaml:"provider,omitempty"`
+	RequestTimeout      string            `yaml:"request-timeout,omitempty"`
 }
 
 // SeleniumConfig holds the configuration for our Selenium service

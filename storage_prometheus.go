@@ -26,14 +26,14 @@ type PrometheusStorage struct {
 	ListenAddr        string
 	Namespace         string
 	Registry          *prometheus.Registry
-	RegisteredMetrics map[string]prometheus.Gauge
+	RegisteredMetrics map[string]*prometheus.GaugeVec
 }
 
 // NewPrometheusStorage sets up a new Prometheus storage backend
 func NewPrometheusStorage(c *Config) PrometheusStorage {
 	p := PrometheusStorage{}
 
-	p.RegisteredMetrics = make(map[string]prometheus.Gauge)
+	p.RegisteredMetrics = make(map[string]*prometheus.GaugeVec)
 
 	p.Namespace = strings.ReplaceAll(c.Storage.Prometheus.Namespace, "-", "_")
 
@@ -124,18 +124,27 @@ func (p PrometheusStorage) sendMetric(m Metric) error {
 
 	metricName = strings.ReplaceAll(metricName, ".", "_")
 
+	promLabelNames := makePrometheusLabelSliceFromTagsMap(m.Tags)
+
 	log.Println("METRIC->", metricName)
 
 	_, present := p.RegisteredMetrics[metricName]
 
+	// If this metric vector is present in our map of metrics, we'll fetch the gauge and set the current value
 	if present {
-		p.RegisteredMetrics[metricName].Set(m.Value)
+		metric, err := p.RegisteredMetrics[metricName].GetMetricWith(m.Tags)
+		if err != nil {
+			return fmt.Errorf("unable to get metric %v with tags %+v: %v", metricName, m.Tags, err)
+		}
+		metric.Set(m.Value)
 	} else {
-		p.RegisteredMetrics[metricName] = prometheus.NewGauge(
+		// The metric wasn't present in our map, so we'll set up a new gauge vector
+		p.RegisteredMetrics[metricName] = prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: metricName,
 				Help: "Crabby timing metric, in milliseconds",
 			},
+			promLabelNames,
 		)
 		p.Registry.MustRegister(p.RegisteredMetrics[metricName])
 	}
@@ -147,4 +156,14 @@ func (p PrometheusStorage) sendMetric(m Metric) error {
 func (p PrometheusStorage) sendEvent(e Event) error {
 	var err error
 	return err
+}
+
+func makePrometheusLabelSliceFromTagsMap(tags map[string]string) []string {
+	var promLabels []string
+
+	for k := range tags {
+		promLabels = append(promLabels, k)
+	}
+
+	return promLabels
 }

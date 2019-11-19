@@ -83,7 +83,7 @@ func (i InfluxDBStorage) sendMetric(m Metric) error {
 	// Make a map to store the metric name/value pair
 	values := map[string]interface{}{m.Timing: m.Value}
 
-	pt, err := client.NewPoint(metricName, i.Tags, values, m.Timestamp)
+	pt, err := client.NewPoint(metricName, m.Tags, values, m.Timestamp)
 
 	if err != nil {
 		return fmt.Errorf("Could not create data point for InfluxDB: %v", err)
@@ -115,20 +115,6 @@ func NewInfluxDBStorage(c *Config) InfluxDBStorage {
 
 	i.DBName = c.Storage.InfluxDB.Database
 	i.Namespace = c.Storage.InfluxDB.Namespace
-
-	i.Tags = make(map[string]string)
-
-	if c.General.StationLocation != "" {
-		i.Tags["station_location"] = c.General.StationLocation
-	}
-
-	if c.General.StationName != "" {
-		i.Tags["station_name"] = c.General.StationName
-	}
-
-	if c.General.StationProvider != "" {
-		i.Tags["station_provider"] = c.General.StationProvider
-	}
 
 	switch c.Storage.InfluxDB.Protocol {
 	case "http":

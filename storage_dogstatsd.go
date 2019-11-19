@@ -68,7 +68,9 @@ func (d DogstatsdStorage) sendMetric(m Metric) error {
 		metricName = fmt.Sprintf("%v.%v.%v", d.Namespace, m.Job, m.Timing)
 	}
 
-	err := d.DogstatsdConn.TimeInMilliseconds(metricName, m.Value, nil, 1)
+	dogTags := makeDogstatsdTagsFromTagsMap(m.Tags)
+
+	err := d.DogstatsdConn.TimeInMilliseconds(metricName, m.Value, dogTags, 1)
 	if err != nil {
 		log.Printf("Could not send metric %v: %v\n", metricName, err)
 		return err
@@ -105,9 +107,7 @@ func (d DogstatsdStorage) sendEvent(e Event) error {
 		sc.Status = statsd.Critical
 	}
 
-	for _, t := range d.DogstatsdConn.Tags {
-		sc.Tags = append(sc.Tags, t)
-	}
+	sc.Tags = makeDogstatsdTagsFromTagsMap(e.Tags)
 
 	err := d.DogstatsdConn.ServiceCheck(sc)
 
@@ -126,8 +126,15 @@ func NewDogstatsdStorage(c *Config) DogstatsdStorage {
 		log.Println("Warning: could not create dogstatsd connection", err)
 	}
 
-	for _, t := range c.Storage.Dogstatsd.Tags {
-		d.DogstatsdConn.Tags = append(d.DogstatsdConn.Tags, t)
-	}
 	return d
+}
+
+func makeDogstatsdTagsFromTagsMap(tags map[string]string) []string {
+	var dogTags []string
+
+	for k, v := range tags {
+		dogTags = append(dogTags, fmt.Sprintf("%v=%v", k, v))
+	}
+
+	return dogTags
 }

@@ -29,7 +29,6 @@ func NewRiemannStorage(c *Config) (RiemannStorage, error) {
 	r := RiemannStorage{}
 
 	r.Namespace = c.Storage.Riemann.Namespace
-	r.Tags = c.Storage.Riemann.Tags
 
 	r.Client = goryman.NewGorymanClient(fmt.Sprint(c.Storage.Riemann.Host, ":", c.Storage.Riemann.Port))
 	err := r.Client.Connect()
