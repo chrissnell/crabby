@@ -126,8 +126,6 @@ func (p PrometheusStorage) sendMetric(m Metric) error {
 
 	promLabelNames := makePrometheusLabelSliceFromTagsMap(m.Tags)
 
-	log.Println("METRIC->", metricName)
-
 	_, present := p.RegisteredMetrics[metricName]
 
 	// If this metric vector is present in our map of metrics, we'll fetch the gauge and set the current value
