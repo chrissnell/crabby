@@ -117,7 +117,8 @@ func mergeTags(jobTags map[string]string, globalTags map[string]string) map[stri
 
 	for k, v := range globalTags {
 		// Add the global tags to the merged tags, but only if they weren't overriden by a job tag
-		if mergedTags[k] != "" {
+		_, present := mergedTags[k]
+		if !present {
 			mergedTags[k] = v
 		}
 	}
