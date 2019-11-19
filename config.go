@@ -21,9 +21,6 @@ type Config struct {
 type GeneralConfig struct {
 	Tags                map[string]string `yaml:"tags"`
 	JobConfigurationURL string            `yaml:"job-configuration-url,omitempty"`
-	StationName         string            `yaml:"hostname,omitempty"`
-	StationLocation     string            `yaml:"location,omitempty"`
-	StationProvider     string            `yaml:"provider,omitempty"`
 	RequestTimeout      string            `yaml:"request-timeout,omitempty"`
 }
 
