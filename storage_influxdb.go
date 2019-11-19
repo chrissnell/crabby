@@ -6,7 +6,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/influxdata/influxdb1-client/v2"
+	client "github.com/influxdata/influxdb1-client/v2"
 )
 
 // InfluxDBConfig describes the YAML-provided configuration for a InfluxDB
@@ -27,7 +27,6 @@ type InfluxDBStorage struct {
 	Namespace    string
 	InfluxDBConn client.Client
 	DBName       string
-	Tags         map[string]string
 }
 
 // StartStorageEngine creates a goroutine loop to receive metrics and send

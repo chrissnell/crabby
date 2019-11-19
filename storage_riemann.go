@@ -12,10 +12,9 @@ import (
 // RiemannConfig describes the YAML-provided configuration for a Riemann
 // storage backend
 type RiemannConfig struct {
-	Host      string   `yaml:"host"`
-	Port      int      `yaml:"port"`
-	Namespace string   `yaml:"metric-namespace,omitempty"`
-	Tags      []string `yaml:"tags,omitempty"`
+	Host      string `yaml:"host"`
+	Port      int    `yaml:"port"`
+	Namespace string `yaml:"metric-namespace,omitempty"`
 }
 
 // RiemannStorage holds the configuration for a Riemann storage backend

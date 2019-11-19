@@ -12,10 +12,9 @@ import (
 // DogstatsdConfig describes the YAML-provided configuration for a Datadog
 // DogstatsD storage backend
 type DogstatsdConfig struct {
-	Host      string   `yaml:"host"`
-	Port      int      `yaml:"port"`
-	Namespace string   `yaml:"metric-namespace"`
-	Tags      []string `yaml:"tags,omitempty"`
+	Host      string `yaml:"host"`
+	Port      int    `yaml:"port"`
+	Namespace string `yaml:"metric-namespace"`
 }
 
 // DogstatsdStorage holds the configuration for a DogstatsD storage backend
