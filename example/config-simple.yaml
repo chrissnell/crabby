@@ -1,5 +1,6 @@
 general:
   request-timeout: 15s
+  # Global tags, applied to all metrics.  You can remove this section if you aren't applying any global tags.
   tags:
      crabby-location: "Digitalocean SFO2"
      environment: prod
@@ -10,35 +11,18 @@ jobs:
    type: simple
    url: https://my-app-here/
    interval: 10
+   # Per-job tags, applied only to this tag.
+   # You can remove this section if you don't want tags applied to this job.
    tags:
       region: us-west-2
       isp: amazon
- - name: some_fancy_webpage
-   type: selenium
-   url:  https://my-site-here/some/page/
-   interval: 30
+ - name: my_api_endpoint
+   type: simple
+   url: https://my-api-here/some/resource
+   interval: 10
    tags:
       region: us-central1
       isp: google
-   cookies:
-    - name: auth
-      domain: mysite.org
-      path: /
-      value: DEADBEEFC0W123456789
-      secure: true
-    - name: session
-      domain: mysite.org
-      path: /
-      value: abDijfeiF3290FijEIO30NC9jkqQER
-      secure: false
-#
-# Selenium Configuration
-#
-# Remove/comment-out this section if you aren't using Selenium
-# 
-selenium:
- url: http://localhost:4444/wd/hub
- job-stagger-offset: 30
 #
 # Storage Backends
 #
