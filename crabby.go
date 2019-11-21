@@ -37,8 +37,8 @@ func main() {
 	}
 
 	// If configured, start a goroutine to report internal metrics from the Go runtime
-	if c.ReportInternalMetrics {
-		go startInternalMetrics(ctx, &wg, s, c.InternalMetricsInterval)
+	if c.General.ReportInternalMetrics {
+		go startInternalMetrics(ctx, &wg, s, c.General.InternalMetricsInterval)
 	}
 
 	tr := &http.Transport{
