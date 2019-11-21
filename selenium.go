@@ -46,6 +46,7 @@ type requestIntervals struct {
 	serverProcessingDuration float64
 	serverResponseDuration   float64
 	domRenderingDuration     float64
+	timeToFirstByte          float64
 }
 
 // webRequest is a single test against a web server
@@ -120,20 +121,12 @@ func RunSeleniumTest(j Job, seleniumServer string, storage *Storage) {
 		return
 	}
 
-	fmt.Println(j.Name, "DNS time:", wr.ri.dnsDuration)
-	storage.MetricDistributor <- makeMetric(j.Name, "dns_duration", wr.ri.dnsDuration, j.Tags)
-
-	fmt.Println(j.Name, "Connection establishment time", wr.ri.serverConnectionDuration)
-	storage.MetricDistributor <- makeMetric(j.Name, "server_connection_duration", wr.ri.serverConnectionDuration, j.Tags)
-
-	fmt.Println(j.Name, "Response time:", wr.ri.serverResponseDuration)
-	storage.MetricDistributor <- makeMetric(j.Name, "server_response_duration", wr.ri.serverResponseDuration, j.Tags)
-
-	fmt.Println(j.Name, "Server processing time:", wr.ri.serverProcessingDuration)
-	storage.MetricDistributor <- makeMetric(j.Name, "server_processing_duration", wr.ri.serverProcessingDuration, j.Tags)
-
-	fmt.Println(j.Name, "DOM rendering time:", wr.ri.domRenderingDuration)
-	storage.MetricDistributor <- makeMetric(j.Name, "dom_rendering_duration", wr.ri.domRenderingDuration, j.Tags)
+	storage.MetricDistributor <- makeMetric(j.Name, "dns_duration_milliseconds", wr.ri.dnsDuration, j.Tags)
+	storage.MetricDistributor <- makeMetric(j.Name, "server_connection_duration_milliseconds", wr.ri.serverConnectionDuration, j.Tags)
+	storage.MetricDistributor <- makeMetric(j.Name, "server_response_duration_milliseconds", wr.ri.serverResponseDuration, j.Tags)
+	storage.MetricDistributor <- makeMetric(j.Name, "server_processing_duration_milliseconds", wr.ri.serverProcessingDuration, j.Tags)
+	storage.MetricDistributor <- makeMetric(j.Name, "dom_rendering_duration_milliseconds", wr.ri.domRenderingDuration, j.Tags)
+	storage.MetricDistributor <- makeMetric(j.Name, "time_to_first_byte_milliseconds", wr.ri.timeToFirstByte, j.Tags)
 
 	err = wr.wd.Close()
 	if err != nil {
@@ -297,4 +290,7 @@ func (wr *webRequest) calcIntervals() {
 	// domRenderingDuration: Time to rendor the complete DOM
 	// domLoading -> domComplete
 	wr.ri.domRenderingDuration = wr.rt.domComplete - wr.rt.domLoading
+
+	// timeToFirstByte: Time to return the first byte to the client
+	wr.ri.timeToFirstByte = wr.rt.responseStart - wr.rt.domainLookupStart
 }
