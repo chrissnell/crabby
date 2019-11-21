@@ -10,24 +10,35 @@ import (
 	"time"
 )
 
-// Job holds a single Selenium
+// Job holds a single job to be run
 type Job struct {
-	Name     string   `yaml:"name"`
-	URL      string   `yaml:"url"`
-	Type     string   `yaml:"type"`
-	Interval uint16   `yaml:"interval"`
-	Cookies  []Cookie `yaml:"cookies,omitempty"`
+	Name     string            `yaml:"name"`
+	URL      string            `yaml:"url"`
+	Type     string            `yaml:"type"`
+	Interval uint16            `yaml:"interval"`
+	Cookies  []Cookie          `yaml:"cookies,omitempty"`
+	Tags     map[string]string `yaml:"tags,omitempty"`
+}
+
+// JobConfig holds a list of jobs to be run
+type JobConfig struct {
+	Jobs []Job `yaml:"jobs"`
 }
 
 // JobRunner holds channels and state related to running Jobs
 type JobRunner struct {
+	ctx     context.Context
 	JobChan chan<- Job
 	WG      sync.WaitGroup
+	Client  *http.Client
+	Storage *Storage
 }
 
 // NewJobRunner returns as JobRunner
-func NewJobRunner() *JobRunner {
-	jr := JobRunner{}
+func NewJobRunner(ctx context.Context) *JobRunner {
+	jr := JobRunner{
+		ctx: ctx,
+	}
 
 	jr.JobChan = make(chan Job, 10)
 
@@ -35,7 +46,7 @@ func NewJobRunner() *JobRunner {
 }
 
 // runJob executes the job on a Ticker interval
-func runJob(ctx context.Context, wg *sync.WaitGroup, j Job, jchan chan<- Job, seleniumServer string, storage *Storage, client *http.Client) {
+func (jr *JobRunner) runJob(wg *sync.WaitGroup, j Job, seleniumServer string, storage *Storage, client *http.Client) {
 	jobTicker := time.NewTicker(time.Duration(j.Interval) * time.Second)
 
 	wg.Add(1)
@@ -48,12 +59,12 @@ func runJob(ctx context.Context, wg *sync.WaitGroup, j Job, jchan chan<- Job, se
 			case "selenium":
 				RunSeleniumTest(j, seleniumServer, storage)
 			case "simple":
-				go RunSimpleTest(ctx, j, storage, client)
+				go RunSimpleTest(jr.ctx, j, storage, client)
 			default:
 				// We run Selenium tests by default
 				RunSeleniumTest(j, seleniumServer, storage)
 			}
-		case <-ctx.Done():
+		case <-jr.ctx.Done():
 			log.Println("Cancellation request received.  Cancelling job runner.")
 			return
 		}
@@ -63,14 +74,20 @@ func runJob(ctx context.Context, wg *sync.WaitGroup, j Job, jchan chan<- Job, se
 
 // StartJobs launches all configured jobs
 func StartJobs(ctx context.Context, wg *sync.WaitGroup, c *Config, storage *Storage, client *http.Client) {
-	jr := NewJobRunner()
+	var jobs []Job
 
-	jobs := c.Jobs
+	jobs = c.Jobs
+
+	jr := NewJobRunner(ctx)
+
 	seleniumServer := c.Selenium.URL
 
 	rand.Seed(time.Now().Unix())
 
 	for _, j := range jobs {
+
+		// Merge the global tags with the per-job tags.  Per-job tags take precidence.
+		j.Tags = mergeTags(j.Tags, c.General.Tags)
 
 		// If we've been provided with an offset for staggering jobs, sleep for a random
 		// time interval (where: 0 < sleepDur < offset) before starting that job's timer
@@ -81,7 +98,30 @@ func StartJobs(ctx context.Context, wg *sync.WaitGroup, c *Config, storage *Stor
 		}
 
 		log.Println("Launching job -> ", j.URL)
-		go runJob(ctx, wg, j, jr.JobChan, seleniumServer, storage, client)
+		go jr.runJob(wg, j, seleniumServer, storage, client)
 	}
 
+}
+
+func mergeTags(jobTags map[string]string, globalTags map[string]string) map[string]string {
+	mergedTags := make(map[string]string)
+
+	// If we don't have any global tags or job tags, just return an empty map
+	if len(jobTags) == 0 && len(globalTags) == 0 {
+		return mergedTags
+	}
+
+	for k, v := range jobTags {
+		mergedTags[k] = v
+	}
+
+	for k, v := range globalTags {
+		// Add the global tags to the merged tags, but only if they weren't overriden by a job tag
+		_, present := mergedTags[k]
+		if !present {
+			mergedTags[k] = v
+		}
+	}
+
+	return mergedTags
 }

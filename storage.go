@@ -14,6 +14,7 @@ type Metric struct {
 	Timing    string
 	Value     float64
 	Timestamp time.Time
+	Tags      map[string]string
 }
 
 // Event holds one monitoring event
@@ -21,6 +22,7 @@ type Event struct {
 	Name         string
 	ServerStatus int
 	Timestamp    time.Time
+	Tags         map[string]string
 }
 
 // Storage holds our active storage backends
@@ -77,7 +79,7 @@ func NewStorage(ctx context.Context, wg *sync.WaitGroup, c *Config) (*Storage, e
 		}
 	}
 
-	if c.Storage.Prometheus.Host != "" {
+	if c.Storage.Prometheus.ListenAddr != "" {
 		err = s.AddEngine(ctx, wg, "prometheus", c)
 		if err != nil {
 			return &s, fmt.Errorf("could not start Prometheus storage backend: %v", err)
@@ -183,25 +185,27 @@ func (s *Storage) storageDistributor(ctx context.Context, wg *sync.WaitGroup) er
 }
 
 // makeMetric creates a Metric from raw values and metric names
-func makeMetric(name string, timing string, value float64) Metric {
+func makeMetric(name string, timing string, value float64, tags map[string]string) Metric {
 
 	m := Metric{
 		Job:       name,
 		Timing:    timing,
 		Value:     value,
 		Timestamp: time.Now(),
+		Tags:      tags,
 	}
 
 	return m
 }
 
 // makeEvent creates an Event from raw values and event names
-func makeEvent(name string, status int) Event {
+func makeEvent(name string, status int, tags map[string]string) Event {
 
 	e := Event{
 		Name:         name,
 		ServerStatus: status,
 		Timestamp:    time.Now(),
+		Tags:         tags,
 	}
 
 	return e
