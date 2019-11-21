@@ -16,7 +16,7 @@ Crabby currently supports five types of metrics delivery:
 
 * Graphite - Time measurements as metrics using Carbon protocol over TCP or UDP
 * Datadog API - Time measurements as metrics; HTTP response codes as service check
-* Prometheus - Time measurements as metrics, sent to Prometheus pushgateway
+* Prometheus - Time measurements as metrics, made available through a Prometheus endpoint.
 * Riemann - Time measurements as metric events; HTTP response codes as state events
 * InfluxDB - Time measurements as metrics using the InfluxDB wire protocol over HTTP
 
