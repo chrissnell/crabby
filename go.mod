@@ -15,6 +15,7 @@ require (
 	github.com/prometheus/client_model v0.0.0-20171117100541-99fa1f4be8e5 // indirect
 	github.com/prometheus/common v0.0.0-20180518154759-7600349dcfe1 // indirect
 	github.com/prometheus/procfs v0.0.0-20180601124529-94663424ae5a // indirect
+	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
 	gopkg.in/yaml.v2 v2.2.1
 	sourcegraph.com/sourcegraph/go-selenium v0.0.0-20120410135938-8c693ec99535
 )
