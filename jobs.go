@@ -72,6 +72,45 @@ func (jr *JobRunner) runJob(wg *sync.WaitGroup, j Job, seleniumServer string, st
 
 }
 
+// makeMetric creates a Metric for a given timing name and value
+func (j *Job) makeMetric(timing string, value float64) Metric {
+	tags := make(map[string]string)
+
+	if len(j.Tags) != 0 {
+		tags = j.Tags
+	}
+
+	m := Metric{
+		Job:       j.Name,
+		URL:       j.URL,
+		Timing:    timing,
+		Value:     value,
+		Timestamp: time.Now(),
+		Tags:      tags,
+	}
+
+	return m
+}
+
+// makeEvent creates an Event from a given status code
+func (j *Job) makeEvent(status int) Event {
+	e := Event{
+		Name:         j.Name,
+		ServerStatus: status,
+		Timestamp:    time.Now(),
+		Tags:         j.Tags,
+	}
+
+	// If our event had no (nil) tags, initialze the tags map so that
+	// we don't panic if tags are added later on.
+	if len(e.Tags) == 0 {
+		e.Tags = make(map[string]string)
+	}
+
+	return e
+
+}
+
 // StartJobs launches all configured jobs
 func StartJobs(ctx context.Context, wg *sync.WaitGroup, c *Config, storage *Storage, client *http.Client) {
 	var jobs []Job
