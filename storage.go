@@ -184,31 +184,3 @@ func (s *Storage) storageDistributor(ctx context.Context, wg *sync.WaitGroup) er
 		}
 	}
 }
-
-// makeMetric creates a Metric from raw values and metric names
-func makeMetric(j Job, timing string, value float64) Metric {
-
-	m := Metric{
-		Job:       j.Name,
-		URL:       j.URL,
-		Timing:    timing,
-		Value:     value,
-		Timestamp: time.Now(),
-		Tags:      j.Tags,
-	}
-
-	return m
-}
-
-// makeEvent creates an Event from raw values and event names
-func makeEvent(name string, status int, tags map[string]string) Event {
-
-	e := Event{
-		Name:         name,
-		ServerStatus: status,
-		Timestamp:    time.Now(),
-		Tags:         tags,
-	}
-
-	return e
-}

@@ -122,6 +122,11 @@ func (p PrometheusStorage) sendMetric(m Metric) error {
 		metricName = fmt.Sprintf("%v_%v", p.Namespace, m.Timing)
 	}
 
+	// If we receive a metric with a nil Tags map, we make a map.
+	if m.Tags == nil {
+		m.Tags = make(map[string]string)
+	}
+
 	m.Tags["crabby_job"] = m.Job
 	m.Tags["url"] = m.URL
 
