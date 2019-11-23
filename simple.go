@@ -109,18 +109,18 @@ func RunSimpleTest(ctx context.Context, j Job, storage *Storage, client *http.Cl
 
 	switch url.Scheme {
 	case "https":
-		storage.MetricDistributor <- makeMetric(j.Name, "dns_duration_milliseconds", t1.Sub(t0).Seconds()*1000, j.Tags)
-		storage.MetricDistributor <- makeMetric(j.Name, "server_connection_duration_milliseconds", t2.Sub(t1).Seconds()*1000, j.Tags)
-		storage.MetricDistributor <- makeMetric(j.Name, "tls_handshake_duration_milliseconds", t3.Sub(t2).Seconds()*1000, j.Tags)
-		storage.MetricDistributor <- makeMetric(j.Name, "server_processing_duration_milliseconds", t4.Sub(t3).Seconds()*1000, j.Tags)
-		storage.MetricDistributor <- makeMetric(j.Name, "server_response_duration_milliseconds", t5.Sub(t4).Seconds()*1000, j.Tags)
-		storage.MetricDistributor <- makeMetric(j.Name, "time_to_first_byte_milliseconds", t4.Sub(t0).Seconds()*1000, j.Tags)
+		storage.MetricDistributor <- makeMetric(j, "dns_duration_milliseconds", t1.Sub(t0).Seconds()*1000)
+		storage.MetricDistributor <- makeMetric(j, "server_connection_duration_milliseconds", t2.Sub(t1).Seconds()*1000)
+		storage.MetricDistributor <- makeMetric(j, "tls_handshake_duration_milliseconds", t3.Sub(t2).Seconds()*1000)
+		storage.MetricDistributor <- makeMetric(j, "server_processing_duration_milliseconds", t4.Sub(t3).Seconds()*1000)
+		storage.MetricDistributor <- makeMetric(j, "server_response_duration_milliseconds", t5.Sub(t4).Seconds()*1000)
+		storage.MetricDistributor <- makeMetric(j, "time_to_first_byte_milliseconds", t4.Sub(t0).Seconds()*1000)
 
 	case "http":
-		storage.MetricDistributor <- makeMetric(j.Name, "dns_duration_milliseconds", t1.Sub(t0).Seconds()*1000, j.Tags)
-		storage.MetricDistributor <- makeMetric(j.Name, "server_connection_duration_milliseconds", t3.Sub(t1).Seconds()*1000, j.Tags)
-		storage.MetricDistributor <- makeMetric(j.Name, "server_processing_duration_milliseconds", t4.Sub(t3).Seconds()*1000, j.Tags)
-		storage.MetricDistributor <- makeMetric(j.Name, "server_response_duration_milliseconds", t5.Sub(t4).Seconds()*1000, j.Tags)
-		storage.MetricDistributor <- makeMetric(j.Name, "time_to_first_byte_milliseconds", t4.Sub(t0).Seconds()*1000, j.Tags)
+		storage.MetricDistributor <- makeMetric(j, "dns_duration_milliseconds", t1.Sub(t0).Seconds()*1000)
+		storage.MetricDistributor <- makeMetric(j, "server_connection_duration_milliseconds", t3.Sub(t1).Seconds()*1000)
+		storage.MetricDistributor <- makeMetric(j, "server_processing_duration_milliseconds", t4.Sub(t3).Seconds()*1000)
+		storage.MetricDistributor <- makeMetric(j, "server_response_duration_milliseconds", t5.Sub(t4).Seconds()*1000)
+		storage.MetricDistributor <- makeMetric(j, "time_to_first_byte_milliseconds", t4.Sub(t0).Seconds()*1000)
 	}
 }

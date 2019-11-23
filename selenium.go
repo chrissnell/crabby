@@ -121,12 +121,12 @@ func RunSeleniumTest(j Job, seleniumServer string, storage *Storage) {
 		return
 	}
 
-	storage.MetricDistributor <- makeMetric(j.Name, "dns_duration_milliseconds", wr.ri.dnsDuration, j.Tags)
-	storage.MetricDistributor <- makeMetric(j.Name, "server_connection_duration_milliseconds", wr.ri.serverConnectionDuration, j.Tags)
-	storage.MetricDistributor <- makeMetric(j.Name, "server_response_duration_milliseconds", wr.ri.serverResponseDuration, j.Tags)
-	storage.MetricDistributor <- makeMetric(j.Name, "server_processing_duration_milliseconds", wr.ri.serverProcessingDuration, j.Tags)
-	storage.MetricDistributor <- makeMetric(j.Name, "dom_rendering_duration_milliseconds", wr.ri.domRenderingDuration, j.Tags)
-	storage.MetricDistributor <- makeMetric(j.Name, "time_to_first_byte_milliseconds", wr.ri.timeToFirstByte, j.Tags)
+	storage.MetricDistributor <- makeMetric(j, "dns_duration_milliseconds", wr.ri.dnsDuration)
+	storage.MetricDistributor <- makeMetric(j, "server_connection_duration_milliseconds", wr.ri.serverConnectionDuration)
+	storage.MetricDistributor <- makeMetric(j, "server_response_duration_milliseconds", wr.ri.serverResponseDuration)
+	storage.MetricDistributor <- makeMetric(j, "server_processing_duration_milliseconds", wr.ri.serverProcessingDuration)
+	storage.MetricDistributor <- makeMetric(j, "dom_rendering_duration_milliseconds", wr.ri.domRenderingDuration)
+	storage.MetricDistributor <- makeMetric(j, "time_to_first_byte_milliseconds", wr.ri.timeToFirstByte)
 
 	err = wr.wd.Close()
 	if err != nil {

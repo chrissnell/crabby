@@ -11,6 +11,7 @@ import (
 // Metric holds one metric data point
 type Metric struct {
 	Job       string
+	URL       string
 	Timing    string
 	Value     float64
 	Timestamp time.Time
@@ -185,14 +186,15 @@ func (s *Storage) storageDistributor(ctx context.Context, wg *sync.WaitGroup) er
 }
 
 // makeMetric creates a Metric from raw values and metric names
-func makeMetric(name string, timing string, value float64, tags map[string]string) Metric {
+func makeMetric(j Job, timing string, value float64) Metric {
 
 	m := Metric{
-		Job:       name,
+		Job:       j.Name,
+		URL:       j.URL,
 		Timing:    timing,
 		Value:     value,
 		Timestamp: time.Now(),
-		Tags:      tags,
+		Tags:      j.Tags,
 	}
 
 	return m
