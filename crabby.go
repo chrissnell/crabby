@@ -11,6 +11,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"gopkg.in/yaml.v2"
 )
 
 func main() {
@@ -83,4 +85,29 @@ func main() {
 
 	fmt.Println("Exiting!")
 
+}
+
+func fetchConfiguration(ctx context.Context, c *Config, client *http.Client) (JobConfig, error) {
+	var cfg JobConfig
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.General.JobConfigurationURL, nil)
+	if err != nil {
+		return JobConfig{}, fmt.Errorf("could not create http request to fetch job configuration: %v", err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return JobConfig{}, fmt.Errorf("could not fetch job configuration: %v", err)
+
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 || resp.StatusCode < 200 {
+		return JobConfig{}, fmt.Errorf("job configuration fetch returned status %v", resp.StatusCode)
+	}
+
+	err = yaml.NewDecoder(resp.Body).Decode(&cfg)
+
+	return cfg, err
 }

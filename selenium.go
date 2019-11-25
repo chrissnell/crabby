@@ -59,12 +59,12 @@ type webRequest struct {
 
 // RunSeleniumTest sends a Selenium job to the Selenium service for running and
 // calculates timings
-func RunSeleniumTest(j Job, seleniumServer string, storage *Storage) {
+func (sjr *SingleJobRunner) RunSeleniumTest() {
 	var err error
 
-	wr := newWebRequest(j.URL)
+	wr := newWebRequest(sjr.Job.URL)
 
-	err = wr.setRemote(seleniumServer)
+	err = wr.setRemote(sjr.SeleniumURL)
 	if err != nil {
 		log.Println("Error connecting to Selenium service:", err)
 		return
@@ -80,13 +80,13 @@ func RunSeleniumTest(j Job, seleniumServer string, storage *Storage) {
 	// tos et the cookies.
 
 	// We only need to use this work-around if we have cookies to set
-	if len(j.Cookies) > 0 {
+	if len(sjr.Job.Cookies) > 0 {
 		var buf bytes.Buffer
 		var u *url.URL
 
-		u, err = url.Parse(j.URL)
+		u, err = url.Parse(sjr.Job.URL)
 		if err != nil {
-			log.Printf("Error parsing url %v: %v\n", j.URL, err)
+			log.Printf("Error parsing url %v: %v\n", sjr.Job.URL, err)
 			return
 		}
 
@@ -101,7 +101,7 @@ func RunSeleniumTest(j Job, seleniumServer string, storage *Storage) {
 			return
 		}
 
-		err = wr.AddCookies(j.Cookies)
+		err = wr.AddCookies(sjr.Job.Cookies)
 		if err != nil {
 			log.Println("Error adding cookies to Selenium request:", err)
 			return
@@ -121,12 +121,12 @@ func RunSeleniumTest(j Job, seleniumServer string, storage *Storage) {
 		return
 	}
 
-	storage.MetricDistributor <- j.makeMetric("dns_duration_milliseconds", wr.ri.dnsDuration)
-	storage.MetricDistributor <- j.makeMetric("server_connection_duration_milliseconds", wr.ri.serverConnectionDuration)
-	storage.MetricDistributor <- j.makeMetric("server_response_duration_milliseconds", wr.ri.serverResponseDuration)
-	storage.MetricDistributor <- j.makeMetric("server_processing_duration_milliseconds", wr.ri.serverProcessingDuration)
-	storage.MetricDistributor <- j.makeMetric("dom_rendering_duration_milliseconds", wr.ri.domRenderingDuration)
-	storage.MetricDistributor <- j.makeMetric("time_to_first_byte_milliseconds", wr.ri.timeToFirstByte)
+	sjr.Storage.MetricDistributor <- sjr.Job.makeMetric("dns_duration_milliseconds", wr.ri.dnsDuration)
+	sjr.Storage.MetricDistributor <- sjr.Job.makeMetric("server_connection_duration_milliseconds", wr.ri.serverConnectionDuration)
+	sjr.Storage.MetricDistributor <- sjr.Job.makeMetric("server_response_duration_milliseconds", wr.ri.serverResponseDuration)
+	sjr.Storage.MetricDistributor <- sjr.Job.makeMetric("server_processing_duration_milliseconds", wr.ri.serverProcessingDuration)
+	sjr.Storage.MetricDistributor <- sjr.Job.makeMetric("dom_rendering_duration_milliseconds", wr.ri.domRenderingDuration)
+	sjr.Storage.MetricDistributor <- sjr.Job.makeMetric("time_to_first_byte_milliseconds", wr.ri.timeToFirstByte)
 
 	err = wr.wd.Close()
 	if err != nil {

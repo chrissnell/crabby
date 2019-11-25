@@ -31,7 +31,6 @@ package main
 */
 
 import (
-	"context"
 	"log"
 	"net/http"
 	"net/http/httptrace"
@@ -49,9 +48,12 @@ type simpleRequestIntervals struct {
 
 // RunSimpleTest starts a simple HTTP/HTTPS test of a site within crabby.  It does
 // not use Selenium to perform this test; instead, it uses Go's built-in net/http client.
-func RunSimpleTest(ctx context.Context, j Job, storage *Storage, client *http.Client) {
+func (sjr *SingleJobRunner) RunSimpleTest() {
 
-	req, err := http.NewRequest(http.MethodGet, j.URL, nil)
+	sjr.wg.Add(1)
+	defer sjr.wg.Done()
+
+	req, err := http.NewRequest(http.MethodGet, sjr.Job.URL, nil)
 	if err != nil {
 		log.Printf("unable to create request: %v", err)
 		return
@@ -79,16 +81,16 @@ func RunSimpleTest(ctx context.Context, j Job, storage *Storage, client *http.Cl
 	}
 
 	// We'll use our Context in this request in case we have to shut down midstream
-	req = req.WithContext(httptrace.WithClientTrace(ctx, trace))
+	req = req.WithContext(httptrace.WithClientTrace(sjr.ctx, trace))
 
-	resp, err := client.Do(req)
+	resp, err := sjr.Client.Do(req)
 	if err != nil {
 		log.Println("Failed to read response:", err)
 		return
 	}
 
 	// Send our server response code as an event
-	storage.EventDistributor <- j.makeEvent(resp.StatusCode)
+	sjr.Storage.EventDistributor <- sjr.Job.makeEvent(resp.StatusCode)
 
 	// Even though we never read the response body, if we don't close it,
 	// the http.Transport goroutines will terminate and the app will eventually
@@ -101,7 +103,7 @@ func RunSimpleTest(ctx context.Context, j Job, storage *Storage, client *http.Cl
 		t0 = t1
 	}
 
-	url, err := url.Parse(j.URL)
+	url, err := url.Parse(sjr.Job.URL)
 	if err != nil {
 		log.Println("Failed to parse URL:", err)
 		return
@@ -109,18 +111,39 @@ func RunSimpleTest(ctx context.Context, j Job, storage *Storage, client *http.Cl
 
 	switch url.Scheme {
 	case "https":
-		storage.MetricDistributor <- j.makeMetric("dns_duration_milliseconds", t1.Sub(t0).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("server_connection_duration_milliseconds", t2.Sub(t1).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("tls_handshake_duration_milliseconds", t3.Sub(t2).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("server_processing_duration_milliseconds", t4.Sub(t3).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("server_response_duration_milliseconds", t5.Sub(t4).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("time_to_first_byte_milliseconds", t4.Sub(t0).Seconds()*1000)
+		sjr.Storage.MetricDistributor <- sjr.Job.makeMetric("dns_duration_milliseconds", t1.Sub(t0).Seconds()*1000)
+		sjr.Storage.MetricDistributor <- sjr.Job.makeMetric("server_connection_duration_milliseconds", t2.Sub(t1).Seconds()*1000)
+		sjr.Storage.MetricDistributor <- sjr.Job.makeMetric("tls_handshake_duration_milliseconds", t3.Sub(t2).Seconds()*1000)
+		sjr.Storage.MetricDistributor <- sjr.Job.makeMetric("server_processing_duration_milliseconds", t4.Sub(t3).Seconds()*1000)
+		sjr.Storage.MetricDistributor <- sjr.Job.makeMetric("server_response_duration_milliseconds", t5.Sub(t4).Seconds()*1000)
+		sjr.Storage.MetricDistributor <- sjr.Job.makeMetric("time_to_first_byte_milliseconds", t4.Sub(t0).Seconds()*1000)
 
 	case "http":
-		storage.MetricDistributor <- j.makeMetric("dns_duration_milliseconds", t1.Sub(t0).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("server_connection_duration_milliseconds", t3.Sub(t1).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("server_processing_duration_milliseconds", t4.Sub(t3).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("server_response_duration_milliseconds", t5.Sub(t4).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("time_to_first_byte_milliseconds", t4.Sub(t0).Seconds()*1000)
+		sjr.Storage.MetricDistributor <- sjr.Job.makeMetric("dns_duration_milliseconds", t1.Sub(t0).Seconds()*1000)
+		sjr.Storage.MetricDistributor <- sjr.Job.makeMetric("server_connection_duration_milliseconds", t3.Sub(t1).Seconds()*1000)
+		sjr.Storage.MetricDistributor <- sjr.Job.makeMetric("server_processing_duration_milliseconds", t4.Sub(t3).Seconds()*1000)
+		sjr.Storage.MetricDistributor <- sjr.Job.makeMetric("server_response_duration_milliseconds", t5.Sub(t4).Seconds()*1000)
+		sjr.Storage.MetricDistributor <- sjr.Job.makeMetric("time_to_first_byte_milliseconds", t4.Sub(t0).Seconds()*1000)
 	}
+}
+
+// NewJobHTTPClient creates a http.Client suitable for running simple tests
+func NewJobHTTPClient(timeout time.Duration) *http.Client {
+
+	tr := &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		// We have to disable keep-alives to keep our server connection time
+		// measurements accurate
+		DisableKeepAlives: true,
+	}
+
+	client := &http.Client{
+		Transport: tr,
+		Timeout:   timeout,
+	}
+
+	return client
+
 }

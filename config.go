@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
+	"time"
 
 	"gopkg.in/yaml.v2"
 )
@@ -18,10 +22,26 @@ type Config struct {
 // GeneralConfig holds general configuration for this Crabby instance
 type GeneralConfig struct {
 	Tags                    map[string]string `yaml:"tags"`
-	JobConfigurationURL     string            `yaml:"job-configuration-url,omitempty"`
+	JobConfigurationURL     string            `yaml:"job-configuration-url"`
 	RequestTimeout          string            `yaml:"request-timeout,omitempty"`
 	ReportInternalMetrics   bool              `yaml:"report-internal-metrics,omitempty"`
 	InternalMetricsInterval uint              `yaml:"internal-metrics-gathering-interval,omitempty"`
+}
+
+// JobConfig holds a list of jobs to be run
+type JobConfig struct {
+	Jobs []Job `yaml:"jobs"`
+}
+
+// Job holds a single job to be run
+type Job struct {
+	Name     string            `yaml:"name"`
+	URL      string            `yaml:"url"`
+	Type     string            `yaml:"type"`
+	Interval string            `yaml:"interval"`
+	Timeout  string            `yaml:"timeout"`
+	Cookies  []Cookie          `yaml:"cookies,omitempty"`
+	Tags     map[string]string `yaml:"tags,omitempty"`
 }
 
 // SeleniumConfig holds the configuration for our Selenium service
@@ -57,4 +77,38 @@ func NewConfig(filename *string) (*Config, error) {
 	}
 
 	return &c, nil
+}
+
+func fetchJobConfiguration(ctx context.Context, url string) (JobConfig, error) {
+	var cfg JobConfig
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			Proxy:                 http.ProxyFromEnvironment,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		},
+		Timeout: 10 * time.Second,
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return JobConfig{}, fmt.Errorf("could not create http request to fetch job configuration: %v", err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return JobConfig{}, fmt.Errorf("could not fetch job configuration: %v", err)
+
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 || resp.StatusCode < 200 {
+		return JobConfig{}, fmt.Errorf("job configuration fetch returned status %v", resp.StatusCode)
+	}
+
+	err = yaml.NewDecoder(resp.Body).Decode(&cfg)
+
+	return cfg, err
 }
