@@ -20,7 +20,7 @@ func main() {
 	sigs := make(chan os.Signal, 1)
 	done := make(chan struct{}, 1)
 
-	cfgFile := flag.String("config", "/Users/zeusandrade/golang/src/crabby_env/config-simple.yaml", "Path to config file (default: ./config.yaml)")
+	cfgFile := flag.String("config", "config.yaml", "Path to config file (default: ./config.yaml)")
 	flag.Parse()
 
 	c, err := NewConfig(cfgFile)
