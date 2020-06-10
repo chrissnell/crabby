@@ -65,6 +65,9 @@ func (jr *JobRunner) runJob(wg *sync.WaitGroup, j Job, seleniumServer string, st
 				RunSeleniumTest(j, seleniumServer, storage)
 			case "simple":
 				go RunSimpleTest(jr.ctx, j, storage, client)
+			case "api":
+				go RunApiTest(jr.ctx, j, storage, client)
+
 			default:
 				// We run Selenium tests by default
 				RunSeleniumTest(j, seleniumServer, storage)

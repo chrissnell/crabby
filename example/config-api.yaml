@@ -1,0 +1,45 @@
+general:
+  request-timeout: 15s
+  # Global tags, applied to all metrics.  You can remove this section if you aren't applying any global tags.
+  tags:
+     crabby-location: "Digitalocean SFO2"
+     environment: prod
+  report-internal-metrics: true
+  internal-metrics-gathering-interval: 15
+jobs:
+ - name: my_api_endpoint
+   type: simple
+   url: https://my-api-here/some/resource
+   method: post
+   body: {"hello": "world"}
+   interval: 10
+   tags:
+      region: us-central1
+      isp: google
+#
+# Storage Backends
+#
+# You will need to remove/comment-out any that you are not going to be using.
+# 
+storage:
+    graphite:
+        host:  graphite.mysite.org
+        port: 2003
+        protocol: tcp
+        metric-namespace: crabby.crabby-sfo-1
+    dogstatsd:
+        host: localhost
+        port: 8125
+        metric-namespace: crabby.crabby-sfo-1
+        tags:
+            - crabby-sfo-1
+    prometheus:
+        host: prometheus.mysite.org
+        port: 9091
+        metric-namespace: crabby.crabby-sfo-1
+    riemann:
+        host: riemann.mysite.org
+        port: 5555
+        metric-namespace: crabby.crabby-sfo-1
+        tags:
+            - crabby-sfo-1
