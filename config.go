@@ -39,6 +39,7 @@ type StorageConfig struct {
 	Prometheus PrometheusConfig `yaml:"prometheus,omitempty"`
 	Riemann    RiemannConfig    `yaml:"riemann,omitempty"`
 	Log        LogConfig        `yaml:"log,omitempty"`
+	PagerDuty  PagerDutyConfig  `yaml:"pagerduty,omitempty"`
 }
 
 // NewConfig creates an new config object from the given filename.
