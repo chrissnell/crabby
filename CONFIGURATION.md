@@ -92,6 +92,63 @@ The `storage` dictionary holds configuration for the various metrics storage and
 | `protocol`     | `tcp` or `udp`.  Defaults to `tcp`. |
 | `namespace`    | A prefix to prepend to all of your metric names.  Useful for when you have more than one Crabby server or use your Graphite server for other things.  Example:  `crabby.crabby-nyc-01` |
 
+### `log` - Log file configuration 
+
+| Field Name | Description | 
+| ---------- | ----------- |
+| `file`     | `stdout`, `stderr`, or a path to a file this storage engine will write to. | 
+| `time`     | Time options for logging. |
+| `format`   | Format options for logging. |
+
+#### `log.time` - Log time configuration 
+
+| Field Name | Description | 
+| ---------- | ----------- |
+| `format`   | A [Go time format string](https://golang.org/pkg/time/#Time.Format) used to format timestamps. Defaults to `2006/01/02 15:04:05`.|
+| `location` | A [Go time location string](https://golang.org/pkg/time/#LoadLocation) used to determine the timezone. Defaults to `Local`. |
+
+#### `log.format` - Log file time configuration
+
+| Field Name | Description | 
+| ---------- | ----------- |
+| `metric`   | The format string used when logging metrics. Defaults to `%time %job %timing: %value (%tags)\n`.|
+| `event`    | The format string used when logging events. Defaults to `%time %name: %status (%tags)\n`.|
+| `tags`     | The format string used to build a concatenated string of tags. Defaults to `%name: %value`.|
+| `tag-separator` | A string used to separate individual tags when building the `%tags` string. |
+
+##### `metric` format variables
+
+The following format variables are available to use in the `log.format.metric` format string.
+
+| Format Variable | Description |
+| --------------- | ----------- |
+| `%job`          | The name of the job that this metric was defined by. |
+| `%timing`       | The name of the timing metric being measured. |
+| `%value`        | The value of the timing metric that was recorded. |
+| `%time`         | The time this metric was recorded. |
+| `%url`          | The URL of the job. |
+| `%tags`         | A string that represents the tags of the job, formatted by the `log.format.tags` format string |
+
+
+##### `event` format variables
+
+The following format variables are available to use in the `log.format.event` format string.
+
+| Format Variable | Description |
+| --------------- | ----------- |
+| `%event`         | The name of the event that was triggered. |
+| `%status`       | The server status recorded by the event. |
+| `%time`         | The time this event was triggered. |
+| `%tags`         | A string that represents the tags of the event, formatted by the `log.format.tags` format string |
+
+##### `tag` format variables
+The following format variables are available to use in the `log.format.tag` format string.
+
+| Format Variable | Description |
+| --------------- | ----------- |
+| `%name`         | The name of the tag. |
+| `%value`        | The value of the tag. |
+
 ## Internal Metrics Reporting
 Optionally, Crabby can report metrics about itself to your storage backends, including memory (heap) and goroutine usage.  This is especially useful if you are doing development on Crabby and trying to track down runtime problems.
 
@@ -142,6 +199,16 @@ storage:
         host: telegraf.mysite.org
         port: 8086
         metric-namespace: crabby
+    log: 
+        file: stdout
+        time:
+            format: "2006/01/02 15:04:05"
+            location: "Local"
+        format:
+            metric: "%time %job %timing: %value (%tags)\n"
+            event: "%time %name: %status (%tags)\n"
+            tag: "%name: %value"
+            tag-seperator: ", "
 report-internal-metrics: true
 internal-metrics-gathering-interval: 15
 ```
