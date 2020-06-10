@@ -164,10 +164,10 @@ func NewLogStorage(c *Config) (LogStorage, error) {
 		l.TimeFormat = "2006/01/02 15:04:05"
 	}
 	if l.Format.Metric == "" {
-		l.Format.Metric = "%time %job %timing: %value (%tags)\n"
+		l.Format.Metric = "%time [M: %job] %timing: %value (%tags)\n"
 	}
 	if l.Format.Event == "" {
-		l.Format.Event = "%time %name: %status (%tags)\n"
+		l.Format.Event = "%time [E: %name] status: %status (%tags)\n"
 	}
 	if l.Format.Tag == "" {
 		l.Format.Tag = "%name: %value"

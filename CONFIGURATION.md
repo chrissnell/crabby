@@ -111,8 +111,8 @@ The `storage` dictionary holds configuration for the various metrics storage and
 
 | Field Name | Description | 
 | ---------- | ----------- |
-| `metric`   | The format string used when logging metrics. Defaults to `%time %job %timing: %value (%tags)\n`.|
-| `event`    | The format string used when logging events. Defaults to `%time %name: %status (%tags)\n`.|
+| `metric`   | The format string used when logging metrics. Defaults to `%time [M: %job] %timing: %value (%tags)\n`.|
+| `event`    | The format string used when logging events. Defaults to `%time [E: %name] status: %status (%tags)\n`.|
 | `tags`     | The format string used to build a concatenated string of tags. Defaults to `%name: %value`.|
 | `tag-separator` | A string used to separate individual tags when building the `%tags` string. |
 
