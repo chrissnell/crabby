@@ -38,6 +38,7 @@ type StorageConfig struct {
 	Dogstatsd  DogstatsdConfig  `yaml:"dogstatsd,omitempty"`
 	Prometheus PrometheusConfig `yaml:"prometheus,omitempty"`
 	Riemann    RiemannConfig    `yaml:"riemann,omitempty"`
+	Log        LogConfig        `yaml:"log,omitempty"`
 	PagerDuty  PagerDutyConfig  `yaml:"pagerduty,omitempty"`
 }
 
