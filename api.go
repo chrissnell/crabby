@@ -53,6 +53,8 @@ func RunApiTest(ctx context.Context, j Job, storage *Storage, client *http.Clien
 		return
 	}
 
+	addHeaders(req, j)
+
 	var t0, t1, t2, t3, t4 time.Time
 
 	trace := &httptrace.ClientTrace{
@@ -118,5 +120,15 @@ func RunApiTest(ctx context.Context, j Job, storage *Storage, client *http.Clien
 		storage.MetricDistributor <- j.makeMetric("server_processing_duration_milliseconds", t4.Sub(t3).Seconds()*1000)
 		storage.MetricDistributor <- j.makeMetric("server_response_duration_milliseconds", t5.Sub(t4).Seconds()*1000)
 		storage.MetricDistributor <- j.makeMetric("time_to_first_byte_milliseconds", t4.Sub(t0).Seconds()*1000)
+	}
+}
+
+func addHeaders(req *http.Request, j Job) {
+	req.Header = http.Header{}
+	if j.Header != nil {
+		req.Header = j.Header
+	}
+	if j.ContentType != "" {
+		req.Header.Add("content-type", j.ContentType)
 	}
 }
