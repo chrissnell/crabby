@@ -36,6 +36,7 @@ import (
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -50,8 +51,12 @@ type simpleRequestIntervals struct {
 // RunSimpleTest starts a simple HTTP/HTTPS test of a site within crabby.  It does
 // not use Selenium to perform this test; instead, it uses Go's built-in net/http client.
 func RunSimpleTest(ctx context.Context, j Job, storage *Storage, client *http.Client) {
+	var method = strings.ToUpper(j.Method)
+	if method == "" {
+		method = http.MethodGet
+	}
 
-	req, err := http.NewRequest(http.MethodGet, j.URL, nil)
+	req, err := http.NewRequest(method, j.URL, nil)
 	if err != nil {
 		log.Printf("unable to create request: %v", err)
 		return

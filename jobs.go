@@ -14,6 +14,7 @@ import (
 type Job struct {
 	Name     string            `yaml:"name"`
 	URL      string            `yaml:"url"`
+	Method   string            `yaml:"method"`
 	Type     string            `yaml:"type"`
 	Interval uint16            `yaml:"interval"`
 	Cookies  []Cookie          `yaml:"cookies,omitempty"`
