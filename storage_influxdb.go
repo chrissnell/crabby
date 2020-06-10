@@ -111,18 +111,13 @@ func (i InfluxDBStorage) sendEvent(e Event) error {
 // NewInfluxDBStorage sets up a new InfluxDB storage backend
 func NewInfluxDBStorage(c *Config) InfluxDBStorage {
 	var err error
-	var scheme string
 	i := InfluxDBStorage{}
 
 	i.DBName = c.Storage.InfluxDB.Database
 	i.Namespace = c.Storage.InfluxDB.Namespace
 
-	if c.Storage.InfluxDB.Protocol != "udp" {
-		if c.Storage.InfluxDB.Scheme == "" {
-			scheme = "http"
-		} else {
-			scheme = c.Storage.InfluxDB.Scheme
-		}
+	if c.Storage.InfluxDB.Protocol != "udp" && c.Storage.InfluxDB.Scheme == "" {
+		c.Storage.InfluxDB.Scheme = "http"
 	}
 
 	switch c.Storage.InfluxDB.Protocol {
