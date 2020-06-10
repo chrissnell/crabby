@@ -119,7 +119,7 @@ func (p PagerDutyStorage) sendEvent(e Event) error {
 				DedupKey:   dedupKey,
 				RoutingKey: p.config.RoutingKey,
 				Payload: &pagerduty.V2Payload{
-					Summary:   fmt.Sprintf("%v returned status %v", eventName, e.ServerStatus)
+					Summary:   fmt.Sprintf("%v returned status %v", eventName, e.ServerStatus),
 					Source:    p.config.Client,
 					Severity:  state,
 					Timestamp: e.Timestamp.Format("2006-01-02T15:04:05.000-0700"),
@@ -131,7 +131,7 @@ func (p PagerDutyStorage) sendEvent(e Event) error {
 				return fmt.Errorf("unable to send event via Pagerduty API: %v", err)
 			}
 			if response.Status != "success" {
-				return fmt.Errorf("event not delivered, response=%+v", response)
+				return fmt.Errorf("unable to send event via Pagerduty API, response:%+v", response)
 			}
 		}
 
