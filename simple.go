@@ -40,14 +40,6 @@ import (
 	"time"
 )
 
-type simpleRequestIntervals struct {
-	dnsDuration              float64
-	serverConnectionDuration float64
-	tlsHandshakeDuration     float64
-	serverProcessingDuration float64
-	serverResponseDuration   float64
-}
-
 // RunSimpleTest starts a simple HTTP/HTTPS test of a site within crabby.  It does
 // not use Selenium to perform this test; instead, it uses Go's built-in net/http client.
 func RunSimpleTest(ctx context.Context, j Job, storage *Storage, client *http.Client) {
