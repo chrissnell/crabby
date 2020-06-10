@@ -107,14 +107,6 @@ func NewStorage(ctx context.Context, wg *sync.WaitGroup, c *Config) (*Storage, e
 			return &s, fmt.Errorf("could not start Log storage backend: %v", err)
 		}
 	}
-
-  if c.Storage.PagerDuty.RoutingKey != "" {
-		err = s.AddEngine(ctx, wg, "pagerduty", c)
-		if err != nil {
-			return &s, fmt.Errorf("could not start PagerDuty storage backend: %v", err)
-		}
-	}
-
 	// Start our storage distributor to distribute received metrics and events
 	// to storage backends
 	go s.storageDistributor(ctx, wg)
@@ -173,15 +165,6 @@ func (s *Storage) AddEngine(ctx context.Context, wg *sync.WaitGroup, engineName 
 		}
 		se.AcceptsEvents = true
 		se.AcceptsMetrics = true
-		s.Engines = append(s.Engines, se)
-	case "pagerduty":
-		se := StorageEngine{}
-		se.I, err = NewPagerDutyStorage(c)
-		if err != nil {
-			log.Fatalln("Could not start PagerDuty storage backend")
-		}
-		se.AcceptsEvents = true
-		se.AcceptsMetrics = false
 		se.M, se.E = se.I.StartStorageEngine(ctx, wg)
 		s.Engines = append(s.Engines, se)
 	}
