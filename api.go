@@ -40,14 +40,6 @@ import (
 	"time"
 )
 
-type apiRequestIntervals struct {
-	dnsDuration              float64
-	serverConnectionDuration float64
-	tlsHandshakeDuration     float64
-	serverProcessingDuration float64
-	serverResponseDuration   float64
-}
-
 // RunSimpleTest starts an HTTP/HTTPS API test of a site within crabby.  It uses Go's built-in net/http client.
 func RunApiTest(ctx context.Context, j Job, storage *Storage, client *http.Client) {
 	var method = strings.ToUpper(j.Method)
