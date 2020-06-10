@@ -52,7 +52,3 @@
 [prune]
   go-tests = true
   unused-packages = true
-
-[[constraint]]
-  name = "github.com/PagerDuty/go-pagerduty"
-  version = "1.2.0"
