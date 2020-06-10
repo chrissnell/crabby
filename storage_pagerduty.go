@@ -128,7 +128,7 @@ func (p PagerDutyStorage) sendEvent(e Event) error {
 			}
 			response, err := pagerduty.ManageEvent(event)
 			if err != nil {
-				return err
+				return fmt.Errorf("unable to send event via Pagerduty API: %v", err)
 			}
 			if response.Status != "success" {
 				return fmt.Errorf("event not delivered, response=%+v", response)
