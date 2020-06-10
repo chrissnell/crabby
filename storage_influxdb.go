@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	client "github.com/influxdata/influxdb1-client/v2"
 )
@@ -20,6 +21,7 @@ type InfluxDBConfig struct {
 	Port      int    `yaml:"port,omitempty"`
 	Protocol  string `yaml:"protocol,omitempty"`
 	Namespace string `yaml:"metric-namespace,omitempty"`
+	Timeout   string `yaml:"timeout,omitempty"`
 }
 
 // InfluxDBStorage holds the configuration for a InfluxDB storage backend
@@ -27,6 +29,7 @@ type InfluxDBStorage struct {
 	Namespace    string
 	InfluxDBConn client.Client
 	DBName       string
+	Timeout      time.Duration
 }
 
 // StartStorageEngine creates a goroutine loop to receive metrics and send
@@ -91,6 +94,12 @@ func (i InfluxDBStorage) sendMetric(m Metric) error {
 
 	bp.AddPoint(pt)
 
+	// Attempt to ping the DB before attempting a write
+	_, status, err := i.InfluxDBConn.Ping(i.Timeout)
+	if err != nil {
+		return fmt.Errorf("InfluxDB ping failed with status %v: %v", status, err)
+	}
+
 	// Write the batch
 	err = i.InfluxDBConn.Write(bp)
 	if err != nil {
@@ -115,6 +124,15 @@ func NewInfluxDBStorage(c *Config) InfluxDBStorage {
 
 	i.DBName = c.Storage.InfluxDB.Database
 	i.Namespace = c.Storage.InfluxDB.Namespace
+
+	if c.Storage.InfluxDB.Timeout != "" {
+		i.Timeout, err = time.ParseDuration(c.Storage.InfluxDB.Timeout)
+		if err != nil {
+			log.Fatalln("could not parse InfluxDB timeout:", err)
+		}
+	} else {
+		i.Timeout = 15 * time.Second
+	}
 
 	if c.Storage.InfluxDB.Protocol != "udp" && c.Storage.InfluxDB.Scheme == "" {
 		c.Storage.InfluxDB.Scheme = "http"
@@ -152,6 +170,7 @@ func NewInfluxDBStorage(c *Config) InfluxDBStorage {
 			Addr:     url,
 			Username: c.Storage.InfluxDB.Username,
 			Password: c.Storage.InfluxDB.Password,
+			Timeout:  i.Timeout,
 		})
 
 		if err != nil {
