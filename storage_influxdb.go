@@ -111,19 +111,30 @@ func (i InfluxDBStorage) sendEvent(e Event) error {
 // NewInfluxDBStorage sets up a new InfluxDB storage backend
 func NewInfluxDBStorage(c *Config) InfluxDBStorage {
 	var err error
+	var scheme string
 	i := InfluxDBStorage{}
 
 	i.DBName = c.Storage.InfluxDB.Database
 	i.Namespace = c.Storage.InfluxDB.Namespace
 
+	if c.Storage.InfluxDB.Protocol != "udp" {
+		if c.Storage.InfluxDB.Scheme == "" {
+			scheme = "http"
+		} else {
+			scheme = c.Storage.InfluxDB.Scheme
+		}
+	}
+
 	switch c.Storage.InfluxDB.Protocol {
 	case "http":
 		url := fmt.Sprintf("%v://%v:%v", c.Storage.InfluxDB.Scheme, c.Storage.InfluxDB.Host, c.Storage.InfluxDB.Port)
+
 		i.InfluxDBConn, err = client.NewHTTPClient(client.HTTPConfig{
 			Addr:     url,
 			Username: c.Storage.InfluxDB.Username,
 			Password: c.Storage.InfluxDB.Password,
 		})
+
 		if err != nil {
 			log.Println("Warning: could not create InfluxDB connection!", err)
 			return InfluxDBStorage{}
@@ -132,18 +143,22 @@ func NewInfluxDBStorage(c *Config) InfluxDBStorage {
 		u := client.UDPConfig{
 			Addr: fmt.Sprintf("%v:%v", c.Storage.InfluxDB.Host, c.Storage.InfluxDB.Port),
 		}
+
 		i.InfluxDBConn, err = client.NewUDPClient(u)
+
 		if err != nil {
 			log.Println("Warning: could not create InfluxDB connection.", err)
 			return InfluxDBStorage{}
 		}
 	default:
 		url := fmt.Sprintf("%v://%v:%v", c.Storage.InfluxDB.Scheme, c.Storage.InfluxDB.Host, c.Storage.InfluxDB.Port)
+
 		i.InfluxDBConn, err = client.NewHTTPClient(client.HTTPConfig{
 			Addr:     url,
 			Username: c.Storage.InfluxDB.Username,
 			Password: c.Storage.InfluxDB.Password,
 		})
+
 		if err != nil {
 			log.Println("Warning: could not create InfluxDB connection!", err)
 			return InfluxDBStorage{}
