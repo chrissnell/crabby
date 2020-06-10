@@ -2,98 +2,162 @@
 
 
 [[projects]]
+  digest = "1:bd285ec20a7450d2272631284de698f2d76e923a458fee90e99cc1db4b97708d"
   name = "github.com/DataDog/datadog-go"
   packages = ["statsd"]
+  pruneopts = "UT"
   revision = "e67964b4021ad3a334e748e8811eb3cd6becbc6e"
   version = "2.1.0"
 
 [[projects]]
+  digest = "1:31d2b51131de9f5d9f2bb071101f00abaaf4576f4ac984952551069d86180c38"
+  name = "github.com/PagerDuty/go-pagerduty"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "b340ee88af63bce16299428892d9372b5dcb8ea7"
+  version = "v1.2.0"
+
+[[projects]]
   branch = "master"
+  digest = "1:d6afaeed1502aa28e80a4ed0981d570ad91b2579193404256ce672ed0a609e0d"
   name = "github.com/beorn7/perks"
   packages = ["quantile"]
+  pruneopts = "UT"
   revision = "3a771d992973f24aa725d07868b467d1ddfceafb"
 
 [[projects]]
   branch = "master"
+  digest = "1:ac5eb8e079ef982e5ed3dc40084e5bd951d1e4a3fdea983e61cb363b21ab94d5"
   name = "github.com/bigdatadev/goryman"
   packages = ["proto"]
+  pruneopts = "UT"
   revision = "55c3cbc3df542201b3c140e72a758d0adae4bc05"
 
 [[projects]]
   branch = "master"
+  digest = "1:a7022bf864527ef090b996c397fc41ccf1b29a3a6ceabf7a942fe56a1fd83518"
   name = "github.com/blockchaindev/goryman"
   packages = ["."]
+  pruneopts = "UT"
   revision = "55c3cbc3df542201b3c140e72a758d0adae4bc05"
 
 [[projects]]
+  digest = "1:15042ad3498153684d09f393bbaec6b216c8eec6d61f63dff711de7d64ed8861"
   name = "github.com/golang/protobuf"
   packages = ["proto"]
+  pruneopts = "UT"
   revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
   version = "v1.1.0"
 
 [[projects]]
+  digest = "1:a63cff6b5d8b95638bfe300385d93b2a6d9d687734b863da8e09dc834510a690"
+  name = "github.com/google/go-querystring"
+  packages = ["query"]
+  pruneopts = "UT"
+  revision = "44c6ddd0a2342c386950e880b658017258da92fc"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
+  digest = "1:6840912f69458248344a760712272b41faeb22fc623c56424407da452f5869fa"
+  name = "github.com/influxdata/influxdb1-client"
+  packages = [
+    "models",
+    "pkg/escape",
+    "v2",
+  ]
+  pruneopts = "UT"
+  revision = "02f0bf5dbca364fe200ee3f5709c8cc0c9bda0d0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:cdfb6a1ee9eb93168259c765ac2ce6f2c1ab5a9258c5bc70da46a1e1337f19ae"
   name = "github.com/marpaia/graphite-golang"
   packages = ["."]
+  pruneopts = "UT"
   revision = "134b9af18cf31f936ebddbd11c03eead4d501601"
 
 [[projects]]
+  digest = "1:ff5ebae34cfbf047d505ee150de27e60570e8c394b3b8fdbb720ff6ac71985fc"
   name = "github.com/matttproud/golang_protobuf_extensions"
   packages = ["pbutil"]
+  pruneopts = "UT"
   revision = "c12348ce28de40eed0136aa2b644d0ee0650e56c"
   version = "v1.0.1"
 
 [[projects]]
+  digest = "1:d14a5f4bfecf017cb780bdde1b6483e5deb87e12c332544d2c430eda58734bcb"
   name = "github.com/prometheus/client_golang"
   packages = [
     "prometheus",
-    "prometheus/push"
+    "prometheus/promhttp",
   ]
+  pruneopts = "UT"
   revision = "c5b7fccd204277076155f10851dad72b76a49317"
   version = "v0.8.0"
 
 [[projects]]
   branch = "master"
+  digest = "1:32d10bdfa8f09ecf13598324dba86ab891f11db3c538b6a34d1c3b5b99d7c36b"
   name = "github.com/prometheus/client_model"
   packages = ["go"]
+  pruneopts = "UT"
   revision = "99fa1f4be8e564e8a6b613da7fa6f46c9edafc6c"
 
 [[projects]]
   branch = "master"
+  digest = "1:e469cd65badf7694aeb44874518606d93c1d59e7735d3754ad442782437d3cc3"
   name = "github.com/prometheus/common"
   packages = [
     "expfmt",
     "internal/bitbucket.org/ww/goautoneg",
-    "model"
+    "model",
   ]
+  pruneopts = "UT"
   revision = "7600349dcfe1abd18d72d3a1770870d9800a7801"
 
 [[projects]]
   branch = "master"
+  digest = "1:570784e0ddbf67f14087c6d8cfb7b999b9c55e75518a755e88cb202566ea8a17"
   name = "github.com/prometheus/procfs"
   packages = [
     ".",
     "internal/util",
     "nfs",
-    "xfs"
+    "xfs",
   ]
+  pruneopts = "UT"
   revision = "94663424ae5ae9856b40a9f170762b4197024661"
 
 [[projects]]
+  digest = "1:342378ac4dcb378a5448dd723f0784ae519383532f5e70ade24132c4c8693202"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
+  pruneopts = "UT"
   revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
   version = "v2.2.1"
 
 [[projects]]
+  digest = "1:9637ff7171318d7556ec5df3832bb359949bbb39cce3545424db4f874e93fbfd"
   name = "sourcegraph.com/sourcegraph/go-selenium"
   packages = ["."]
+  pruneopts = "UT"
   revision = "8c693ec995357f311ffdf5020f64ca93d19068c7"
   version = "0.6.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "be028c43b1781bb28ea042b4713faf080a49234fc23d9d10419e10f7e2bd4282"
+  input-imports = [
+    "github.com/DataDog/datadog-go/statsd",
+    "github.com/PagerDuty/go-pagerduty",
+    "github.com/blockchaindev/goryman",
+    "github.com/influxdata/influxdb1-client/v2",
+    "github.com/marpaia/graphite-golang",
+    "github.com/prometheus/client_golang/prometheus",
+    "github.com/prometheus/client_golang/prometheus/promhttp",
+    "gopkg.in/yaml.v2",
+    "sourcegraph.com/sourcegraph/go-selenium",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1
