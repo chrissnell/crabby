@@ -3,7 +3,6 @@ package client // import "github.com/influxdata/influxdb1-client/v2"
 
 import (
 	"bytes"
-	"compress/gzip"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -19,13 +18,6 @@ import (
 	"time"
 
 	"github.com/influxdata/influxdb1-client/models"
-)
-
-type ContentEncoding string
-
-const (
-	DefaultEncoding ContentEncoding = ""
-	GzipEncoding    ContentEncoding = "gzip"
 )
 
 // HTTPConfig is the config data needed to create an HTTP Client.
@@ -56,9 +48,6 @@ type HTTPConfig struct {
 
 	// Proxy configures the Proxy function on the HTTP client.
 	Proxy func(req *http.Request) (*url.URL, error)
-
-	// WriteEncoding specifies the encoding of write request
-	WriteEncoding ContentEncoding
 }
 
 // BatchPointsConfig is the config data needed to create an instance of the BatchPoints struct.
@@ -113,12 +102,6 @@ func NewHTTPClient(conf HTTPConfig) (Client, error) {
 		return nil, errors.New(m)
 	}
 
-	switch conf.WriteEncoding {
-	case DefaultEncoding, GzipEncoding:
-	default:
-		return nil, fmt.Errorf("unsupported encoding %s", conf.WriteEncoding)
-	}
-
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: conf.InsecureSkipVerify,
@@ -138,7 +121,6 @@ func NewHTTPClient(conf HTTPConfig) (Client, error) {
 			Transport: tr,
 		},
 		transport: tr,
-		encoding:  conf.WriteEncoding,
 	}, nil
 }
 
@@ -204,7 +186,6 @@ type client struct {
 	useragent  string
 	httpClient *http.Client
 	transport  *http.Transport
-	encoding   ContentEncoding
 }
 
 // BatchPoints is an interface into a batched grouping of points to write into
@@ -385,29 +366,15 @@ func NewPointFrom(pt models.Point) *Point {
 func (c *client) Write(bp BatchPoints) error {
 	var b bytes.Buffer
 
-	var w io.Writer
-	if c.encoding == GzipEncoding {
-		w = gzip.NewWriter(&b)
-	} else {
-		w = &b
-	}
-
 	for _, p := range bp.Points() {
 		if p == nil {
 			continue
 		}
-		if _, err := io.WriteString(w, p.pt.PrecisionString(bp.Precision())); err != nil {
+		if _, err := b.WriteString(p.pt.PrecisionString(bp.Precision())); err != nil {
 			return err
 		}
 
-		if _, err := w.Write([]byte{'\n'}); err != nil {
-			return err
-		}
-	}
-
-	// gzip writer should be closed to flush data into underlying buffer
-	if c, ok := w.(io.Closer); ok {
-		if err := c.Close(); err != nil {
+		if err := b.WriteByte('\n'); err != nil {
 			return err
 		}
 	}
@@ -418,9 +385,6 @@ func (c *client) Write(bp BatchPoints) error {
 	req, err := http.NewRequest("POST", u.String(), &b)
 	if err != nil {
 		return err
-	}
-	if c.encoding != DefaultEncoding {
-		req.Header.Set("Content-Encoding", string(c.encoding))
 	}
 	req.Header.Set("Content-Type", "")
 	req.Header.Set("User-Agent", c.useragent)
@@ -529,10 +493,9 @@ type Message struct {
 
 // Result represents a resultset returned from a single statement.
 type Result struct {
-	StatementId int `json:"statement_id"`
-	Series      []models.Row
-	Messages    []*Message
-	Err         string `json:"error,omitempty"`
+	Series   []models.Row
+	Messages []*Message
+	Err      string `json:"error,omitempty"`
 }
 
 // Query sends a command to the server and returns the Response.
