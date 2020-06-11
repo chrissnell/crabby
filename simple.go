@@ -41,6 +41,7 @@ import (
 	"time"
 )
 
+// SimpleJobConfig holds the configuration for a simple job
 type SimpleJobConfig struct {
 	Name     string            `yaml:"name"`
 	URL      string            `yaml:"url"`
@@ -49,10 +50,12 @@ type SimpleJobConfig struct {
 	Tags     map[string]string `yaml:"tags,omitempty"`
 }
 
+// GetJobName returns the name of the job
 func (c *SimpleJobConfig) GetJobName() string {
 	return c.Name
 }
 
+// SimpleJob holds the runtime configuration for a simple job
 type SimpleJob struct {
 	config  SimpleJobConfig
 	wg      *sync.WaitGroup
@@ -61,6 +64,7 @@ type SimpleJob struct {
 	client  *http.Client
 }
 
+// StartJob starts a simple job
 func (j *SimpleJob) StartJob() {
 	j.wg.Add(1)
 	defer j.wg.Done()

@@ -12,6 +12,7 @@ import (
 	"sourcegraph.com/sourcegraph/go-selenium"
 )
 
+// SeleniumJobConfig holds configuration for a selenium job
 type SeleniumJobConfig struct {
 	Name           string            `yaml:"name"`
 	URL            string            `yaml:"url"`
@@ -22,10 +23,12 @@ type SeleniumJobConfig struct {
 	seleniumServer string
 }
 
+// GetJobName returns the name of the job
 func (c *SeleniumJobConfig) GetJobName() string {
 	return c.Name
 }
 
+// SeleniumJob holds the runtime configuration for a selenium job
 type SeleniumJob struct {
 	config  SeleniumJobConfig
 	wg      *sync.WaitGroup
@@ -33,6 +36,7 @@ type SeleniumJob struct {
 	storage *Storage
 }
 
+// StartJob starts a selenium job
 func (j *SeleniumJob) StartJob() {
 	j.wg.Add(1)
 	defer j.wg.Done()
