@@ -35,7 +35,8 @@ jobs:
    type: api
    url: https://my-api-here/some/resource
    method: post
-   body: "{\"hello\": \"world\"}"
+   body: >-
+     { "hello": "world" }
    interval: 10
    tags:
      region: us-central1

@@ -41,12 +41,15 @@ import (
 )
 
 // RunSimpleTest starts an HTTP/HTTPS API test of a site within crabby.  It uses Go's built-in net/http client.
-func RunApiTest(ctx context.Context, j Job, storage *Storage, client *http.Client, responses map[string]*JobResponse) {
-	for ; !prerequisitesMet(j, responses); {
-		log.Printf("Prerequisites not met for %s, going to sleep.\n", j.Name)
-		time.Sleep(1 * time.Second)
+func RunApiTest(ctx context.Context, j Job, storage *Storage, client *http.Client) {
+	responses := map[string]*http.Response{}
+	for _, job := range j.Steps {
+		runApiTestStep(ctx, job, storage, client, responses)
 	}
-	log.Printf("Prerequisites met. Running %s.\n", j.Name)
+}
+
+func runApiTestStep(ctx context.Context, step Step, storage *Storage, client *http.Client, responses map[string]*http.Response) {
+	j := step.ToJob()
 
 	var method = strings.ToUpper(j.Method)
 	if method == "" {
@@ -94,13 +97,7 @@ func RunApiTest(ctx context.Context, j Job, storage *Storage, client *http.Clien
 	// Send our server response code as an event
 	storage.EventDistributor <- j.makeEvent(resp.StatusCode)
 
-	// Save response for use by other jobs
-	if _, ok := responses[j.Name]; ok {
-		responses[j.Name].Completed = true
-		responses[j.Name].Response = resp
-		log.Println("Response saved job:", j.Name)
-		go waitAndClearResponse(responses, j.Name)
-	}
+	responses[j.Name] = resp
 
 	// Even though we never read the response body, if we don't close it,
 	// the http.Transport goroutines will terminate and the app will eventually
@@ -137,11 +134,6 @@ func RunApiTest(ctx context.Context, j Job, storage *Storage, client *http.Clien
 	}
 }
 
-func waitAndClearResponse(responses map[string]*JobResponse, name string) {
-	time.Sleep(5 * time.Second)
-	responses[name].Completed = false
-}
-
 func addHeaders(req *http.Request, j Job) {
 	req.Header = http.Header{}
 	if j.Header != nil {
@@ -150,20 +142,4 @@ func addHeaders(req *http.Request, j Job) {
 	if j.ContentType != "" {
 		req.Header.Add("content-type", j.ContentType)
 	}
-}
-
-func prerequisitesMet(job Job, responses map[string]*JobResponse) bool {
-	if job.Type != "api" {
-		// Job dependencies are only supported for API tests.
-		log.Printf("Warning! Job %s requires other jobs to be completed," +
-			" but job dependencies are only supported for API tests!\n", job.Name)
-		return true
-	}
-
-	for _, dep := range job.Requires {
-		if !responses[dep].Completed {
-			return false
-		}
-	}
-	return true
 }

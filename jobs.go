@@ -51,7 +51,7 @@ func NewJobRunner(ctx context.Context) *JobRunner {
 }
 
 // runJob executes the job on a Ticker interval
-func (jr *JobRunner) runJob(wg *sync.WaitGroup, j Job, seleniumServer string, storage *Storage, client *http.Client, responses map[string]*JobResponse) {
+func (jr *JobRunner) runJob(wg *sync.WaitGroup, j Job, seleniumServer string, storage *Storage, client *http.Client) {
 	jobTicker := time.NewTicker(time.Duration(j.Interval) * time.Second)
 
 	wg.Add(1)
@@ -66,7 +66,7 @@ func (jr *JobRunner) runJob(wg *sync.WaitGroup, j Job, seleniumServer string, st
 			case "simple":
 				go RunSimpleTest(jr.ctx, j, storage, client)
 			case "api":
-				go RunApiTest(jr.ctx, j, storage, client, responses)
+				go RunApiTest(jr.ctx, j, storage, client)
 
 			default:
 				// We run Selenium tests by default
@@ -131,8 +131,6 @@ func StartJobs(ctx context.Context, wg *sync.WaitGroup, c *Config, storage *Stor
 
 	rand.Seed(time.Now().Unix())
 
-	responses := responseMap(jobs)
-
 	for _, j := range jobs {
 
 		// Merge the global tags with the per-job tags.  Per-job tags take precedence.
@@ -149,24 +147,10 @@ func StartJobs(ctx context.Context, wg *sync.WaitGroup, c *Config, storage *Stor
 			time.Sleep(sleepDur)
 		}
 
-		// todo: how to handle this for sequential?
-		log.Println("Launching job ->", j.Step.Name)
+		log.Println("Launching job -> ", j.Step.Name, j.Step.URL)
 		go jr.runJob(wg, j, seleniumServer, storage, client)
 	}
 
-}
-
-func responseMap(jobs []Job) map[string]*JobResponse {
-	completed := map[string]*JobResponse{}
-	for _, j := range jobs {
-		for _, dependency := range j.Requires {
-			completed[dependency] = &JobResponse{
-				Completed: false,
-				Response:  &http.Response{},
-			}
-		}
-	}
-	return completed
 }
 
 func mergeTags(jobTags map[string]string, globalTags map[string]string) map[string]string {
