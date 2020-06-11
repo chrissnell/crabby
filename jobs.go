@@ -19,11 +19,11 @@ type Job struct {
 }
 
 type JobStep struct {
-	Name    string            `yaml:"name"`
-	URL     string            `yaml:"url"`
-	Method  string            `yaml:"method"`
-	Cookies []Cookie          `yaml:"cookies,omitempty"`
-	Header  map[string]string `yaml:"header,omitempty"`
+	Name    string              `yaml:"name"`
+	URL     string              `yaml:"url"`
+	Method  string              `yaml:"method"`
+	Cookies []Cookie            `yaml:"cookies,omitempty"`
+	Header  map[string]string   `yaml:"header,omitempty"`
 	// if header contains a different content type this overwrites it.
 	ContentType string            `yaml:"content-type,omitempty"`
 	Body        string            `yaml:"body,omitempty"`
@@ -65,6 +65,9 @@ func (jr *JobRunner) runJob(wg *sync.WaitGroup, j Job, seleniumServer string, st
 				RunSeleniumTest(j, seleniumServer, storage)
 			case "simple":
 				go RunSimpleTest(jr.ctx, j, storage, client)
+			case "api":
+				go RunApiTest(jr.ctx, j, storage, client)
+
 			default:
 				// We run Selenium tests by default
 				RunSeleniumTest(j, seleniumServer, storage)
@@ -144,8 +147,7 @@ func StartJobs(ctx context.Context, wg *sync.WaitGroup, c *Config, storage *Stor
 			time.Sleep(sleepDur)
 		}
 
-		// todo: how to handle this for sequential?
-		log.Println("Launching job ->", j.Step.Name)
+		log.Println("Launching job -> ", j.Step.Name, j.Step.URL)
 		go jr.runJob(wg, j, seleniumServer, storage, client)
 	}
 

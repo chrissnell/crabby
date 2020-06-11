@@ -31,6 +31,16 @@ jobs:
       path: /
       value: abDijfeiF3290FijEIO30NC9jkqQER
       secure: false
+ - name: my_api_endpoint
+   type: api
+   url: https://my-api-here/some/resource
+   method: post
+   body: >-
+     { "hello": "world" }
+   interval: 10
+   tags:
+     region: us-central1
+     isp: google
 #
 # Selenium Configuration
 #
