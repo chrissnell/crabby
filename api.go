@@ -32,35 +32,49 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptrace"
+	"net/textproto"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 )
 
 // RunSimpleTest starts an HTTP/HTTPS API test of a site within crabby.  It uses Go's built-in net/http client.
 func RunApiTest(ctx context.Context, j Job, storage *Storage, client *http.Client) {
-	responses := map[string]*http.Response{}
+	responses := map[string]json.RawMessage{}
 	for _, s := range j.Steps {
 		runApiTestStep(ctx, s, storage, client, responses)
 	}
 }
 
-func runApiTestStep(ctx context.Context, j JobStep, storage *Storage, client *http.Client, responses map[string]*http.Response) {
+func runApiTestStep(ctx context.Context, j JobStep, storage *Storage, client *http.Client, responses map[string]json.RawMessage) {
 	var method = strings.ToUpper(j.Method)
 	if method == "" {
 		method = http.MethodGet
 	}
 
-	req, err := http.NewRequest(method, j.URL, strings.NewReader(j.Body))
+	body, err := replacePlaceholders(j.Body, responses)
+	if err != nil {
+		log.Printf("unable to substitute body variables in body: %v", err)
+		return
+	}
+
+	req, err := http.NewRequest(method, j.URL, strings.NewReader(body))
 	if err != nil {
 		log.Printf("unable to create request: %v", err)
 		return
 	}
 
-	addHeaders(req, j)
+	if err := addHeaders(req, j, responses); err != nil {
+		log.Printf("unable to process headers: %v", err)
+		return
+	}
 
 	var t0, t1, t2, t3, t4 time.Time
 
@@ -95,7 +109,13 @@ func runApiTestStep(ctx context.Context, j JobStep, storage *Storage, client *ht
 	// Send our server response code as an event
 	storage.EventDistributor <- j.makeEvent(resp.StatusCode)
 
-	responses[j.Name] = resp
+	// unmarshal response and save into map
+	if responses[j.Name], err = ioutil.ReadAll(resp.Body); err != nil {
+		log.Println("WARNING!", err)
+	} else {
+		out, _ := replacePlaceholders(fmt.Sprintf("%s response:\n{{ %s }}\n", j.Name, j.Name), responses)
+		log.Println(out)
+	}
 
 	// Even though we never read the response body, if we don't close it,
 	// the http.Transport goroutines will terminate and the app will eventually
@@ -132,12 +152,67 @@ func runApiTestStep(ctx context.Context, j JobStep, storage *Storage, client *ht
 	}
 }
 
-func addHeaders(req *http.Request, j JobStep) {
+
+func addHeaders(req *http.Request, j JobStep, responses map[string]json.RawMessage) error {
 	req.Header = http.Header{}
-	if j.Header != nil {
-		req.Header = j.Header
+
+	for k, value := range j.Header {
+		key := textproto.CanonicalMIMEHeaderKey(k)
+		if _, ok := req.Header[key]; !ok {
+			req.Header[key] = value
+		} else {
+			req.Header[key] = append(req.Header[key], value...)
+		}
 	}
+
 	if j.ContentType != "" {
-		req.Header.Add("content-type", j.ContentType)
+		req.Header["Content-Type"] = []string{j.ContentType}
 	}
+
+	// replace placeholders in header values
+	for key := range req.Header {
+		for i := range req.Header[key] {
+			var err error
+			if req.Header[key][i], err = replacePlaceholders(req.Header[key][i], responses); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// getResponseValue looks at the responses of previous steps for a response value.
+// s should be <stepName>.objectKey1.objectkey2...
+// e.g. step1 returns a json { "key": { "subkey": "value" } }.
+// 		step2 can access this by putting {{ step1.key.subkey }} to obtain "value"
+// Note: this function will fail if the key contains "." e.g. { "bad.key": value }
+func getResponseValue(s string, m map[string]json.RawMessage) (string, error) {
+	split := strings.SplitN(s, ".",2)
+	value := m[split[0]]
+	if len(split) == 1 {
+		return string(value), nil
+	}
+	var submap map[string]json.RawMessage
+	if err := json.Unmarshal(value, &submap); err != nil {
+		return "", err
+	}
+	return getResponseValue(split[1], submap)
+}
+
+func replacePlaceholders(s string, m map[string]json.RawMessage) (string, error) {
+	re := regexp.MustCompile(`{{ *[^}}]* *}}`)
+	vars := re.FindAll([]byte(s), -1)
+	varvals := make([]interface{}, len(vars))
+	for i, v := range vars {
+		key := string(v)
+		key = strings.TrimPrefix(key, "{{")
+		key = strings.TrimSuffix(key, "}}")
+		key = strings.TrimSpace(key)
+		var err error
+		if varvals[i], err = getResponseValue(key, m); err != nil {
+			return "", err
+		}
+	}
+	format := re.ReplaceAll([]byte(s), []byte("%s"))
+	return fmt.Sprintf(string(format), varvals...), nil
 }
