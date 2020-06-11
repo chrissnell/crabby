@@ -25,6 +25,10 @@ type GeneralConfig struct {
 	UserAgent               string            `yaml:"user-agent,omitempty"`
 }
 
+// MetaJobConfig is an intermediate holding place for Job configurations.  It has members
+// to account for every possible configuration member for all of our types of jobs.  If
+// you are adding a new type of job with new configuration options, be sure to add those
+// options to this struct.
 type MetaJobConfig struct {
 	Name     string            `yaml:"name"`
 	Type     string            `yaml:"type"`
