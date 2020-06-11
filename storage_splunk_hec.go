@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"sync"
@@ -35,15 +37,37 @@ type SplunkHecStorage struct {
 }
 
 // NewSplunkHecStorage sets up a new Splunk HEC storage backend
-func NewSplunkHecStorage(c ServiceConfig) (SplunkHecStorage, error) {
+func NewSplunkHecStorage(c *Config) (SplunkHecStorage, error) {
+	var s SplunkHecStorage
+	s.config = c.Storage.SplunkHec
 	tr := &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 	}
-	tr.TLSClientConfig = &tls.Config{
-		InsecureSkipVerify: c.Storage.SplunkHec.SkipCertificateValidation,
-		RootCAs:            rootCAs,
+	if c.Storage.SplunkHec.CaCert != "" {
+		rootCAs, err := x509.SystemCertPool()
+		if err != nil {
+			return s, fmt.Errorf("unable to load system certificate pool: %v", err)
+		}
+		if rootCAs == nil {
+			return s, fmt.Errorf("unable to append ca-cert, system certificate pool is nil")
+		}
+		certs, err := ioutil.ReadFile(c.Storage.SplunkHec.CaCert)
+		if err != nil {
+			return s, fmt.Errorf("unable to load ca-cert from %s: %v", c.Storage.SplunkHec.CaCert, err)
+		}
+		if ok := rootCAs.AppendCertsFromPEM(certs); !ok {
+			log.Printf("unable to append ca-cert from %s, using system certs only\n", c.Storage.SplunkHec.CaCert)
+		}
+		tr.TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: c.Storage.SplunkHec.SkipCertificateValidation,
+			RootCAs:            rootCAs,
+		}
+	} else {
+		tr.TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: c.Storage.SplunkHec.SkipCertificateValidation,
+		}
 	}
 
 	var requestTimeout time.Duration
@@ -63,10 +87,7 @@ func NewSplunkHecStorage(c ServiceConfig) (SplunkHecStorage, error) {
 		Timeout:   requestTimeout,
 	}
 
-	s := SplunkHecStorage{
-		client: httpClient,
-		config: c.Storage.SplunkHec,
-	}
+	s.client = httpClient
 	return s, nil
 }
 
