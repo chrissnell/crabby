@@ -31,16 +31,25 @@ jobs:
       path: /
       value: abDijfeiF3290FijEIO30NC9jkqQER
       secure: false
- - name: my_api_endpoint
-   type: api
-   url: https://my-api-here/some/resource
-   method: post
-   body: >-
-     { "hello": "world" }
+ - name: api_jobs
    interval: 10
-   tags:
-     region: us-central1
-     isp: google
+   type: api
+   steps:
+     - name: get_something
+       url: https://my-endpoint/get
+       method: get
+       tags:
+         region: us-central1
+         isp: google
+     - name: post_something
+       url: https://my-endpoint/post
+       method: post
+       header: { "Content-Type": "application/json" }
+       body: >-
+         { "token": {{ get_something.key1.key2.token }} }
+       tags:
+         region: us-central1
+         isp: google
 #
 # Selenium Configuration
 #
