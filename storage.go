@@ -115,7 +115,7 @@ func NewStorage(ctx context.Context, wg *sync.WaitGroup, c ServiceConfig) (*Stor
 		}
 	}
 
-	if c.Storage.SplunkHec.Tenant != "" {
+	if c.Storage.SplunkHec.HecURL != "" {
 		err = s.AddEngine(ctx, wg, "splunk-hec", c)
 		if err != nil {
 			return &s, fmt.Errorf("could not start Splunk HEC storage backend: %v", err)

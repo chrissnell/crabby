@@ -16,8 +16,7 @@ import (
 // storage backend.
 type SplunkHecConfig struct {
 	Token                     string `yaml:"token"`
-	Tenant                    string `yaml:"tenant"`
-	Port                      int    `yaml:"port"`
+	HecURL                    string `yaml:"hec-url"`
 	Host                      string `yaml:"host"`
 	Source                    string `yaml:"source"`
 	MetricsSourceType         string `yaml:"metrics-source-type"`
@@ -25,13 +24,13 @@ type SplunkHecConfig struct {
 	EventsSourceType          string `yaml:"events-source-type"`
 	EventsIndex               string `yaml:"events-index"`
 	SkipCertificateValidation bool   `yaml:"skip-cert-validation"`
+	CaCert                    string `yaml:"ca-cert"`
 }
 
 // SplunkHecStorage holds the configuration of a Splunk HEC storage backend
 type SplunkHecStorage struct {
 	client *http.Client
 	config SplunkHecConfig
-	url    string
 	ctx    context.Context
 }
 
@@ -42,8 +41,9 @@ func NewSplunkHecStorage(c ServiceConfig) (SplunkHecStorage, error) {
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 	}
-	if c.Storage.SplunkHec.SkipCertificateValidation {
-		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	tr.TLSClientConfig = &tls.Config{
+		InsecureSkipVerify: c.Storage.SplunkHec.SkipCertificateValidation,
+		RootCAs:            rootCAs,
 	}
 
 	var requestTimeout time.Duration
@@ -66,7 +66,6 @@ func NewSplunkHecStorage(c ServiceConfig) (SplunkHecStorage, error) {
 	s := SplunkHecStorage{
 		client: httpClient,
 		config: c.Storage.SplunkHec,
-		url:    fmt.Sprintf("https://%s:%d/services/collector", c.Storage.SplunkHec.Tenant, c.Storage.SplunkHec.Port),
 	}
 	return s, nil
 }
@@ -157,7 +156,7 @@ func (s SplunkHecStorage) sendMetricOrEvent(index, sourceType string, ts time.Ti
 }
 
 func (s SplunkHecStorage) sendHecEvent(event []byte) error {
-	req, err := http.NewRequestWithContext(s.ctx, http.MethodPost, s.url, bytes.NewBuffer(event))
+	req, err := http.NewRequestWithContext(s.ctx, http.MethodPost, s.config.HecURL, bytes.NewBuffer(event))
 
 	if err != nil {
 		return err

@@ -153,6 +153,29 @@ The following format variables are available to use in the `log.format.tag` form
 | `%name`         | The name of the tag. |
 | `%value`        | The value of the tag. |
 
+### `splunk-hec` - Splunk HTTP Event Collector configuration
+
+| Field Name | Description |
+| ---------- | ----------- |
+| `token`     | The token for your Splunk HTTP Event Collector server. |
+| `hec-url`     | The url of your HTTP Event Colelctor e.g. `https://http-inputs-{id}.splunkcloud.com/services/collector`. See [Set up and use HTTP Event Collector in Splunk Web](https://docs.splunk.com/Documentation/Splunk/8.0.4/Data/UsetheHTTPEventCollector) for more information about Splunk HEC. | 
+| `source`     | The source for crabby events and metrics in Splunk, default value is `crabby`. |
+| `metrics-source-type`     | The source type for crabby metric entries in Splunk, default value is `metrics`. |
+| `events-source-type`     | The source type for crabby event entries in Splunk, default value is `events`. |
+| `metrics-index`     | The index where crabby metrics will be appended, default value is `main`. |
+| `events-index`     | The index where crabby events will be appended, default value is `main`. |
+| `ca-cert`     | Absolute path to a CA certificate to be used to validate the `hec-url`. |
+| `skip-cert-validation`     | Disables SSL certificate validation for the `hec-url` use it only for testing. |
+
+### `pagerduty` - Pager Duty configuration
+
+| Field Name | Description |
+| ---------- | ----------- |
+| `routing-key`     | The routing key for your PagerDuty service. See [Services and Integrations](https://support.pagerduty.com/docs/services-and-integrations) for more information. |
+| `event-duration`     | Minimum duration between events, crabby will generate at most one incident for any events during this period. The value can be a number followed by a unit such as `300ms`, `1.5h` or `2h45m`. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h". |
+| `namespace`     | A prefix to prepend to all of your event names, default value is `crabby`|
+| `client`     | Client value for all of your Pager Duty event names, default value is `crabby`|
+
 ## Internal Metrics Reporting
 Optionally, Crabby can report metrics about itself to your storage backends, including memory (heap) and goroutine usage.  This is especially useful if you are doing development on Crabby and trying to track down runtime problems.
 
