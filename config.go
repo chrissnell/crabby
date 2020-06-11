@@ -40,6 +40,7 @@ type StorageConfig struct {
 	Riemann    RiemannConfig    `yaml:"riemann,omitempty"`
 	Log        LogConfig        `yaml:"log,omitempty"`
 	PagerDuty  PagerDutyConfig  `yaml:"pagerduty,omitempty"`
+	SplunkHec  SplunkHecConfig  `yaml:"splunk-hec,omitempty"`
 }
 
 // NewConfig creates an new config object from the given filename.
