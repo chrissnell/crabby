@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"reflect"
 	"sync"
 	"time"
+
+	"gopkg.in/yaml.v2"
 )
 
 // A Job is an interface to a single instance of a gatherer
@@ -66,36 +68,11 @@ func NewJobManager(ctx context.Context, wg *sync.WaitGroup, s *Storage, serviceC
 
 	defer tr.CloseIdleConnections()
 
-	// for _, j := range serviceConfig.Jobs {
-	// 	switch j.(type) {
-	// 	case *SimpleJobConfig:
-	// 		j.(*SimpleJobConfig).Tags = mergeTags(j.(*SimpleJobConfig).Tags, serviceConfig.General.Tags)
-
-	// 		jobs = append(jobs, SimpleJob{
-	// 			ctx:     ctx,
-	// 			wg:      wg,
-	// 			storage: s,
-	// 			client:  client,
-	// 			config:  j.(SimpleJobConfig),
-	// 		})
-	// 	case *SeleniumJobConfig:
-	// 		j.(*SeleniumJobConfig).Tags = mergeTags(j.(*SeleniumJobConfig).Tags, serviceConfig.General.Tags)
-
-	// 		jobs = append(jobs, SeleniumJob{
-	// 			ctx:     ctx,
-	// 			wg:      wg,
-	// 			storage: s,
-	// 			config:  j.(SeleniumJobConfig),
-	// 		})
-	// 	}
-	// }
-
 	return &JobManager{
 		ctx:           ctx,
 		wg:            wg,
 		storage:       s,
 		httpclient:    client,
-		jobs:          serviceConfig.Jobs,
 		globalTags:    serviceConfig.General.Tags,
 		serviceConfig: serviceConfig,
 	}, nil
@@ -108,7 +85,6 @@ func (jm *JobManager) Run() error {
 		return fmt.Errorf("Unable to build jobs for JobManager: %v", err)
 	}
 
-	log.Println("Starting jobs...")
 	jm.StartJobs()
 
 	return nil
@@ -116,14 +92,36 @@ func (jm *JobManager) Run() error {
 
 // BuildJobs assembles properly-configured jobs for the JobManager
 func (jm *JobManager) BuildJobs() error {
+	log.Println("Building jobs...")
+
+	// To support multiple styles of job configurations within our YAML configuration,
+	// we unmarshal the `jobs` YAML struct to a MetaJobsConfig struct in config.go, which
+	// contains members for every kind of configuration that might be found in the `jobs`
+	// struct in our config file.  To turn those into the proper gather-specific job
+	// configs, we use a little trick: we remarshall the struct that config.go
+	// parsed back into YAML... and then we unmarshall it again into the type of job
+	// config that we actually want.
 	for _, j := range jm.serviceConfig.Jobs {
-		switch j.(type) {
-		case *SimpleJobConfig:
-			jm.jobs = append(jm.jobs, jm.newJob(j.(*SimpleJobConfig)))
-		case *SeleniumJobConfig:
-			jm.jobs = append(jm.jobs, jm.newJob(j.(*SeleniumJobConfig)))
+		switch j.Type {
+		case "simple":
+			jc := new(SimpleJobConfig)
+			remarshalled, _ := yaml.Marshal(j)
+			err := yaml.Unmarshal(remarshalled, jc)
+			if err != nil {
+				return fmt.Errorf("unable to marshall simple job %v: %v", j.Name, err)
+			}
+			jm.jobs = append(jm.jobs, jm.newJob(jc))
+		case "selenium":
+			jc := new(SeleniumJobConfig)
+			remarshalled, _ := yaml.Marshal(j)
+			err := yaml.Unmarshal(remarshalled, jc)
+			if err != nil {
+				return fmt.Errorf("unable to marshall simple job %v: %v", j.Name, err)
+			}
+			jm.jobs = append(jm.jobs, jm.newJob(jc))
 		default:
-			return errors.New("unknown config type")
+			log.Println("UNKNOWN TYPE", reflect.TypeOf(j))
+			// /return errors.New("unknown config type")
 		}
 	}
 	return nil
@@ -131,6 +129,8 @@ func (jm *JobManager) BuildJobs() error {
 
 // StartJobs starts all active jobs
 func (jm *JobManager) StartJobs() {
+	log.Println("Starting jobs...")
+
 	for _, j := range jm.jobs {
 		switch j.(type) {
 		case *SimpleJob:
@@ -143,6 +143,8 @@ func (jm *JobManager) StartJobs() {
 
 // newJob creates a new Job of the appropriate type for the chosen gatherer
 func (jm *JobManager) newJob(jobconfig JobConfig) Job {
+	log.Println("Creating job", jobconfig.GetJobName())
+
 	switch c := jobconfig.(type) {
 	case *SimpleJobConfig:
 		jobconfig.(*SimpleJobConfig).Tags = mergeTags(jobconfig.(*SimpleJobConfig).Tags, jm.serviceConfig.General.Tags)

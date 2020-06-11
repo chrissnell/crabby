@@ -9,10 +9,10 @@ import (
 
 // ServiceConfig is the base of our configuration data structure
 type ServiceConfig struct {
-	General  GeneralConfig  `yaml:"general"`
-	Jobs     []interface{}  `yaml:"jobs"`
-	Selenium SeleniumConfig `yaml:"selenium"`
-	Storage  StorageConfig  `yaml:"storage,omitempty"`
+	General  GeneralConfig   `yaml:"general"`
+	Jobs     []MetaJobConfig `yaml:"jobs"`
+	Selenium SeleniumConfig  `yaml:"selenium"`
+	Storage  StorageConfig   `yaml:"storage,omitempty"`
 }
 
 // GeneralConfig holds general configuration for this Crabby instance
@@ -23,6 +23,16 @@ type GeneralConfig struct {
 	ReportInternalMetrics   bool              `yaml:"report-internal-metrics,omitempty"`
 	InternalMetricsInterval uint              `yaml:"internal-metrics-gathering-interval,omitempty"`
 	UserAgent               string            `yaml:"user-agent,omitempty"`
+}
+
+type MetaJobConfig struct {
+	Name     string            `yaml:"name"`
+	Type     string            `yaml:"type"`
+	URL      string            `yaml:"url"`
+	Method   string            `yaml:"method"`
+	Interval uint16            `yaml:"interval"`
+	Tags     map[string]string `yaml:"tags,omitempty"`
+	Cookies  []Cookie          `yaml:"cookies,omitempty"`
 }
 
 // SeleniumConfig holds the configuration for our Selenium service
