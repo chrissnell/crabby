@@ -103,7 +103,7 @@ func (g GraphiteStorage) sendEvent(e Event) error {
 }
 
 // NewGraphiteStorage sets up a new Graphite storage backend
-func NewGraphiteStorage(c *Config) GraphiteStorage {
+func NewGraphiteStorage(c ServiceConfig) GraphiteStorage {
 	var err error
 	g := GraphiteStorage{}
 

@@ -54,8 +54,8 @@ func (c *SimpleJobConfig) GetJobName() string {
 }
 
 type SimpleJob struct {
-	config  *SimpleJobConfig
-	wg      sync.WaitGroup
+	config  SimpleJobConfig
+	wg      *sync.WaitGroup
 	ctx     context.Context
 	storage *Storage
 	client  *http.Client
@@ -76,8 +76,6 @@ func (j *SimpleJob) StartJob() {
 			return
 		}
 	}
-
-	return
 }
 
 // RunSimpleTest starts a simple HTTP/HTTPS test of a site within crabby.  It does

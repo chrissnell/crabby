@@ -7,10 +7,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Config is the base of our configuration data structure
-type Config struct {
+// ServiceConfig is the base of our configuration data structure
+type ServiceConfig struct {
 	General  GeneralConfig  `yaml:"general"`
-	Jobs     []Job          `yaml:"jobs"`
+	Jobs     []interface{}  `yaml:"jobs"`
 	Selenium SeleniumConfig `yaml:"selenium"`
 	Storage  StorageConfig  `yaml:"storage,omitempty"`
 }
@@ -22,6 +22,7 @@ type GeneralConfig struct {
 	RequestTimeout          string            `yaml:"request-timeout,omitempty"`
 	ReportInternalMetrics   bool              `yaml:"report-internal-metrics,omitempty"`
 	InternalMetricsInterval uint              `yaml:"internal-metrics-gathering-interval,omitempty"`
+	UserAgent               string            `yaml:"user-agent,omitempty"`
 }
 
 // SeleniumConfig holds the configuration for our Selenium service
@@ -42,20 +43,20 @@ type StorageConfig struct {
 }
 
 // NewConfig creates an new config object from the given filename.
-func NewConfig(filename *string) (*Config, error) {
+func NewConfig(filename *string) (ServiceConfig, error) {
 	cfgFile, err := ioutil.ReadFile(*filename)
 	if err != nil {
-		return &Config{}, err
+		return ServiceConfig{}, err
 	}
-	c := Config{}
+	c := ServiceConfig{}
 	err = yaml.Unmarshal(cfgFile, &c)
 	if err != nil {
-		return &Config{}, err
+		return ServiceConfig{}, err
 	}
 
 	if len(c.Jobs) == 0 {
 		log.Fatalln("No jobs were configured!")
 	}
 
-	return &c, nil
+	return c, nil
 }

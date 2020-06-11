@@ -109,7 +109,7 @@ func (i InfluxDBStorage) sendEvent(e Event) error {
 }
 
 // NewInfluxDBStorage sets up a new InfluxDB storage backend
-func NewInfluxDBStorage(c *Config) InfluxDBStorage {
+func NewInfluxDBStorage(c ServiceConfig) InfluxDBStorage {
 	var err error
 	i := InfluxDBStorage{}
 

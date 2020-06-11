@@ -129,7 +129,7 @@ func (l LogStorage) sendEvent(e Event) error {
 	return nil
 }
 
-func NewLogStorage(c *Config) (LogStorage, error) {
+func NewLogStorage(c ServiceConfig) (LogStorage, error) {
 	var outStream *os.File
 	var l = LogStorage{}
 

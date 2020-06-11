@@ -27,8 +27,8 @@ func (c *SeleniumJobConfig) GetJobName() string {
 }
 
 type SeleniumJob struct {
-	config  *SeleniumJobConfig
-	wg      sync.WaitGroup
+	config  SeleniumJobConfig
+	wg      *sync.WaitGroup
 	ctx     context.Context
 	storage *Storage
 }
@@ -48,8 +48,6 @@ func (j *SeleniumJob) StartJob() {
 			return
 		}
 	}
-
-	return
 }
 
 /*
