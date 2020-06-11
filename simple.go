@@ -54,6 +54,15 @@ func RunSimpleTest(ctx context.Context, j Job, storage *Storage, client *http.Cl
 		return
 	}
 
+	for key, value := range j.Step.Header {
+		req.Header.Add(key, value)
+	}
+
+	if len(j.Step.Cookies) > 0 {
+		// Add Cookie header
+		req.Header.Add("Cookie", HeaderString(j.Step.Cookies))
+	}
+
 	var t0, t1, t2, t3, t4 time.Time
 
 	trace := &httptrace.ClientTrace{
