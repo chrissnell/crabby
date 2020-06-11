@@ -43,14 +43,12 @@ import (
 // RunSimpleTest starts an HTTP/HTTPS API test of a site within crabby.  It uses Go's built-in net/http client.
 func RunApiTest(ctx context.Context, j Job, storage *Storage, client *http.Client) {
 	responses := map[string]*http.Response{}
-	for _, job := range j.Steps {
-		runApiTestStep(ctx, job, storage, client, responses)
+	for _, s := range j.Steps {
+		runApiTestStep(ctx, s, storage, client, responses)
 	}
 }
 
-func runApiTestStep(ctx context.Context, step Step, storage *Storage, client *http.Client, responses map[string]*http.Response) {
-	j := step.ToJob()
-
+func runApiTestStep(ctx context.Context, j JobStep, storage *Storage, client *http.Client, responses map[string]*http.Response) {
 	var method = strings.ToUpper(j.Method)
 	if method == "" {
 		method = http.MethodGet
@@ -134,7 +132,7 @@ func runApiTestStep(ctx context.Context, step Step, storage *Storage, client *ht
 	}
 }
 
-func addHeaders(req *http.Request, j Job) {
+func addHeaders(req *http.Request, j JobStep) {
 	req.Header = http.Header{}
 	if j.Header != nil {
 		req.Header = j.Header
