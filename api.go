@@ -38,7 +38,6 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptrace"
-	"net/textproto"
 	"net/url"
 	"regexp"
 	"strings"
@@ -158,13 +157,8 @@ func runApiTestStep(ctx context.Context, j JobStep, storage *Storage, client *ht
 func addHeaders(req *http.Request, j JobStep, responses map[string]json.RawMessage) error {
 	req.Header = http.Header{}
 
-	for k, value := range j.Header {
-		key := textproto.CanonicalMIMEHeaderKey(k)
-		if _, ok := req.Header[key]; !ok {
-			req.Header[key] = value
-		} else {
-			req.Header[key] = append(req.Header[key], value...)
-		}
+	for key, value := range j.Header {
+		req.Header.Add(key, value)
 	}
 
 	if j.ContentType != "" {

@@ -19,11 +19,11 @@ type Job struct {
 }
 
 type JobStep struct {
-	Name    string            `yaml:"name"`
-	URL     string            `yaml:"url"`
-	Method  string            `yaml:"method"`
-	Cookies []Cookie          `yaml:"cookies,omitempty"`
-	Header  map[string]string `yaml:"header,omitempty"`
+	Name    string              `yaml:"name"`
+	URL     string              `yaml:"url"`
+	Method  string              `yaml:"method"`
+	Cookies []Cookie            `yaml:"cookies,omitempty"`
+	Header  map[string]string   `yaml:"header,omitempty"`
 	// if header contains a different content type this overwrites it.
 	ContentType string            `yaml:"content-type,omitempty"`
 	Body        string            `yaml:"body,omitempty"`
