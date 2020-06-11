@@ -54,26 +54,24 @@ func NewPagerDutyStorage(c *Config) (PagerDutyStorage, error) {
 	return p, nil
 }
 
-// StartStorageEngine creates a goroutine loop to receive metrics and send
-// them off to a Prometheus pushgateway
+// StartStorageEngine creates a goroutine loop to receive events and send
+// them off to a PagerDuty service
 func (p PagerDutyStorage) StartStorageEngine(ctx context.Context, wg *sync.WaitGroup) (chan<- Metric, chan<- Event) {
-	// PagerDuty storage supports both metrics and events, so we'll initialize both channels
-	metricChan := make(chan Metric, 10)
+	// PagerDuty storage supports only events, so we'll initialize both channels
 	eventChan := make(chan Event, 10)
 
-	// Start processing the metrics we receive
-	go p.processMetricsAndEvents(ctx, wg, metricChan, eventChan)
+	// Start processing the events we receive
+	go p.processMetricsAndEvents(ctx, wg, eventChan)
 
-	return metricChan, eventChan
+	return nil, eventChan
 }
 
-func (p PagerDutyStorage) processMetricsAndEvents(ctx context.Context, wg *sync.WaitGroup, mchan <-chan Metric, echan <-chan Event) {
+func (p PagerDutyStorage) processMetricsAndEvents(ctx context.Context, wg *sync.WaitGroup, echan <-chan Event) {
 	wg.Add(1)
 	defer wg.Done()
 
 	for {
 		select {
-		case <-mchan:
 		case e := <-echan:
 			err := p.sendEvent(e)
 			if err != nil {
@@ -86,7 +84,7 @@ func (p PagerDutyStorage) processMetricsAndEvents(ctx context.Context, wg *sync.
 	}
 }
 
-// sendMetric sends a metric value to PagerDuty
+// sendMetric is not supported, but the method id required to implement StorageEngineInterface
 func (p PagerDutyStorage) sendMetric(m Metric) error {
 	return errors.New("metrics not supported")
 }
