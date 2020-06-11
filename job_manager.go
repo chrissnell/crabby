@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"reflect"
 	"sync"
 	"time"
 
@@ -120,8 +119,7 @@ func (jm *JobManager) BuildJobs() error {
 			}
 			jm.jobs = append(jm.jobs, jm.newJob(jc))
 		default:
-			log.Println("UNKNOWN TYPE", reflect.TypeOf(j))
-			// /return errors.New("unknown config type")
+			return fmt.Errorf("job type was not specified for job %v. Add a 'type: <jobtype>' to this job's configuration", j.Name)
 		}
 	}
 	return nil
