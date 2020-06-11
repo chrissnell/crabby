@@ -74,6 +74,7 @@ func NewSplunkHecStorage(c *Config) (SplunkHecStorage, error) {
 // StartStorageEngine creates a go routine to process events and metrics and sned them
 // to a Splunk HEC service
 func (s SplunkHecStorage) StartStorageEngine(ctx context.Context, wg *sync.WaitGroup) (chan<- Metric, chan<- Event) {
+	s.ctx = ctx
 	eventChan := make(chan Event, 10)
 	metricsChan := make(chan Metric, 10)
 	go s.processMetricsAndEvents(ctx, wg, metricsChan, eventChan)
@@ -149,7 +150,7 @@ func (s SplunkHecStorage) sendMetricOrEvent(index, sourceType string, ts time.Ti
 	})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("could not marshal splunk-hec event: %v", err)
 	}
 
 	return s.sendHecEvent(payload)
@@ -165,13 +166,13 @@ func (s SplunkHecStorage) sendHecEvent(event []byte) error {
 
 	res, err := s.client.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("splunk-hec HTTP request failed: %v", err)
 	}
 
 	if res.StatusCode != 200 {
-		err = fmt.Errorf("unable to send event through Splunc HEC, response: %+v", res)
+		return fmt.Errorf("unable to send event through Splunc HEC, response: %+v", res)
 	}
-	return err
+	return nil
 }
 
 type hecEvent struct {
