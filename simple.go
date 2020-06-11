@@ -65,6 +65,8 @@ func (j *SimpleJob) StartJob() {
 	j.wg.Add(1)
 	defer j.wg.Done()
 
+	log.Println("Starting job", j.config.Name)
+
 	jobTicker := time.NewTicker(time.Duration(j.config.Interval) * time.Second)
 
 	for {
