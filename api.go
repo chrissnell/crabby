@@ -45,6 +45,8 @@ import (
 	"time"
 )
 
+var placeholderRegex = regexp.MustCompile(`{{ *[^}}]* *}}`)
+
 // RunSimpleTest starts an HTTP/HTTPS API test of a site within crabby.  It uses Go's built-in net/http client.
 func RunApiTest(ctx context.Context, j Job, storage *Storage, client *http.Client) {
 	responses := map[string]json.RawMessage{}
@@ -200,8 +202,7 @@ func getResponseValue(s string, m map[string]json.RawMessage) (string, error) {
 }
 
 func replacePlaceholders(s string, m map[string]json.RawMessage) (string, error) {
-	re := regexp.MustCompile(`{{ *[^}}]* *}}`)
-	vars := re.FindAll([]byte(s), -1)
+	vars := placeholderRegex.FindAll([]byte(s), -1)
 	varvals := make([]interface{}, len(vars))
 	for i, v := range vars {
 		key := string(v)
@@ -213,6 +214,6 @@ func replacePlaceholders(s string, m map[string]json.RawMessage) (string, error)
 			return "", err
 		}
 	}
-	format := re.ReplaceAll([]byte(s), []byte("%s"))
+	format := placeholderRegex.ReplaceAll([]byte(s), []byte("%s"))
 	return fmt.Sprintf(string(format), varvals...), nil
 }
