@@ -32,6 +32,7 @@ type SplunkHecStorage struct {
 	client *http.Client
 	config SplunkHecConfig
 	url    string
+	ctx    context.Context
 }
 
 // NewSplunkHecStorage sets up a new Splunk HEC storage backend
@@ -155,7 +156,7 @@ func (s SplunkHecStorage) sendMetricOrEvent(index, sourceType string, ts time.Ti
 }
 
 func (s SplunkHecStorage) sendHecEvent(event []byte) error {
-	req, err := http.NewRequest(http.MethodPost, s.url, bytes.NewBuffer(event))
+	req, err := http.NewRequestWithContext(s.ctx, http.MethodPost, s.url, bytes.NewBuffer(event))
 
 	if err != nil {
 		return err
