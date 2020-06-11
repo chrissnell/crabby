@@ -43,12 +43,12 @@ import (
 // RunSimpleTest starts a simple HTTP/HTTPS test of a site within crabby.  It does
 // not use Selenium to perform this test; instead, it uses Go's built-in net/http client.
 func RunSimpleTest(ctx context.Context, j Job, storage *Storage, client *http.Client) {
-	var method = strings.ToUpper(j.Method)
+	var method = strings.ToUpper(j.Step.Method)
 	if method == "" {
 		method = http.MethodGet
 	}
 
-	req, err := http.NewRequest(method, j.URL, nil)
+	req, err := http.NewRequest(method, j.Step.URL, nil)
 	if err != nil {
 		log.Printf("unable to create request: %v", err)
 		return
@@ -85,7 +85,7 @@ func RunSimpleTest(ctx context.Context, j Job, storage *Storage, client *http.Cl
 	}
 
 	// Send our server response code as an event
-	storage.EventDistributor <- j.makeEvent(resp.StatusCode)
+	storage.EventDistributor <- j.Step.makeEvent(resp.StatusCode)
 
 	// Even though we never read the response body, if we don't close it,
 	// the http.Transport goroutines will terminate and the app will eventually
@@ -98,7 +98,7 @@ func RunSimpleTest(ctx context.Context, j Job, storage *Storage, client *http.Cl
 		t0 = t1
 	}
 
-	url, err := url.Parse(j.URL)
+	url, err := url.Parse(j.Step.URL)
 	if err != nil {
 		log.Println("Failed to parse URL:", err)
 		return
@@ -106,18 +106,18 @@ func RunSimpleTest(ctx context.Context, j Job, storage *Storage, client *http.Cl
 
 	switch url.Scheme {
 	case "https":
-		storage.MetricDistributor <- j.makeMetric("dns_duration_milliseconds", t1.Sub(t0).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("server_connection_duration_milliseconds", t2.Sub(t1).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("tls_handshake_duration_milliseconds", t3.Sub(t2).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("server_processing_duration_milliseconds", t4.Sub(t3).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("server_response_duration_milliseconds", t5.Sub(t4).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("time_to_first_byte_milliseconds", t4.Sub(t0).Seconds()*1000)
+		storage.MetricDistributor <- j.Step.makeMetric("dns_duration_milliseconds", t1.Sub(t0).Seconds()*1000)
+		storage.MetricDistributor <- j.Step.makeMetric("server_connection_duration_milliseconds", t2.Sub(t1).Seconds()*1000)
+		storage.MetricDistributor <- j.Step.makeMetric("tls_handshake_duration_milliseconds", t3.Sub(t2).Seconds()*1000)
+		storage.MetricDistributor <- j.Step.makeMetric("server_processing_duration_milliseconds", t4.Sub(t3).Seconds()*1000)
+		storage.MetricDistributor <- j.Step.makeMetric("server_response_duration_milliseconds", t5.Sub(t4).Seconds()*1000)
+		storage.MetricDistributor <- j.Step.makeMetric("time_to_first_byte_milliseconds", t4.Sub(t0).Seconds()*1000)
 
 	case "http":
-		storage.MetricDistributor <- j.makeMetric("dns_duration_milliseconds", t1.Sub(t0).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("server_connection_duration_milliseconds", t3.Sub(t1).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("server_processing_duration_milliseconds", t4.Sub(t3).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("server_response_duration_milliseconds", t5.Sub(t4).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("time_to_first_byte_milliseconds", t4.Sub(t0).Seconds()*1000)
+		storage.MetricDistributor <- j.Step.makeMetric("dns_duration_milliseconds", t1.Sub(t0).Seconds()*1000)
+		storage.MetricDistributor <- j.Step.makeMetric("server_connection_duration_milliseconds", t3.Sub(t1).Seconds()*1000)
+		storage.MetricDistributor <- j.Step.makeMetric("server_processing_duration_milliseconds", t4.Sub(t3).Seconds()*1000)
+		storage.MetricDistributor <- j.Step.makeMetric("server_response_duration_milliseconds", t5.Sub(t4).Seconds()*1000)
+		storage.MetricDistributor <- j.Step.makeMetric("time_to_first_byte_milliseconds", t4.Sub(t0).Seconds()*1000)
 	}
 }

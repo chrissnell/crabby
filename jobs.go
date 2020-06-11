@@ -12,18 +12,22 @@ import (
 
 // Job holds a single job to be run
 type Job struct {
-	Name     string            `yaml:"name"`
-	URL      string            `yaml:"url"`
-	Method   string            `yaml:"method"`
-	Type     string            `yaml:"type"`
-	Interval uint16            `yaml:"interval"`
-	Cookies  []Cookie          `yaml:"cookies,omitempty"`
-	Tags     map[string]string `yaml:"tags,omitempty"`
+	Step     JobStep   `yaml:",inline"`
+	Type     string    `yaml:"type"`
+	Interval uint16    `yaml:"interval"`
+	Steps    []JobStep `yaml:"steps,omitempty"` // an api job may consist of multiple jobs (steps)
 }
 
-// JobConfig holds a list of jobs to be run
-type JobConfig struct {
-	Jobs []Job `yaml:"jobs"`
+type JobStep struct {
+	Name    string              `yaml:"name"`
+	URL     string              `yaml:"url"`
+	Method  string              `yaml:"method"`
+	Cookies []Cookie            `yaml:"cookies,omitempty"`
+	Header  map[string][]string `yaml:"header,omitempty"`
+	// if header contains a different content type this overwrites it.
+	ContentType string            `yaml:"content-type,omitempty"`
+	Body        string            `yaml:"body,omitempty"`
+	Tags        map[string]string `yaml:"tags,omitempty"`
 }
 
 // JobRunner holds channels and state related to running Jobs
@@ -74,7 +78,7 @@ func (jr *JobRunner) runJob(wg *sync.WaitGroup, j Job, seleniumServer string, st
 }
 
 // makeMetric creates a Metric for a given timing name and value
-func (j *Job) makeMetric(timing string, value float64) Metric {
+func (j *JobStep) makeMetric(timing string, value float64) Metric {
 	tags := make(map[string]string)
 
 	if len(j.Tags) != 0 {
@@ -94,7 +98,7 @@ func (j *Job) makeMetric(timing string, value float64) Metric {
 }
 
 // makeEvent creates an Event from a given status code
-func (j *Job) makeEvent(status int) Event {
+func (j *JobStep) makeEvent(status int) Event {
 	e := Event{
 		Name:         j.Name,
 		ServerStatus: status,
@@ -126,8 +130,11 @@ func StartJobs(ctx context.Context, wg *sync.WaitGroup, c *Config, storage *Stor
 
 	for _, j := range jobs {
 
-		// Merge the global tags with the per-job tags.  Per-job tags take precidence.
-		j.Tags = mergeTags(j.Tags, c.General.Tags)
+		// Merge the global tags with the per-job tags.  Per-job tags take precedence.
+		j.Step.Tags = mergeTags(j.Step.Tags, c.General.Tags)
+		for _, step := range j.Steps {
+			step.Tags = mergeTags(j.Step.Tags, c.General.Tags)
+		}
 
 		// If we've been provided with an offset for staggering jobs, sleep for a random
 		// time interval (where: 0 < sleepDur < offset) before starting that job's timer
@@ -137,7 +144,8 @@ func StartJobs(ctx context.Context, wg *sync.WaitGroup, c *Config, storage *Stor
 			time.Sleep(sleepDur)
 		}
 
-		log.Println("Launching job -> ", j.URL)
+		// todo: how to handle this for sequential?
+		log.Println("Launching job ->", j.Step.Name)
 		go jr.runJob(wg, j, seleniumServer, storage, client)
 	}
 

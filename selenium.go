@@ -62,7 +62,7 @@ type webRequest struct {
 func RunSeleniumTest(j Job, seleniumServer string, storage *Storage) {
 	var err error
 
-	wr := newWebRequest(j.URL)
+	wr := newWebRequest(j.Step.URL)
 
 	err = wr.setRemote(seleniumServer)
 	if err != nil {
@@ -80,13 +80,13 @@ func RunSeleniumTest(j Job, seleniumServer string, storage *Storage) {
 	// tos et the cookies.
 
 	// We only need to use this work-around if we have cookies to set
-	if len(j.Cookies) > 0 {
+	if len(j.Step.Cookies) > 0 {
 		var buf bytes.Buffer
 		var u *url.URL
 
-		u, err = url.Parse(j.URL)
+		u, err = url.Parse(j.Step.URL)
 		if err != nil {
-			log.Printf("Error parsing url %v: %v\n", j.URL, err)
+			log.Printf("Error parsing url %v: %v\n", j.Step.URL, err)
 			return
 		}
 
@@ -101,7 +101,7 @@ func RunSeleniumTest(j Job, seleniumServer string, storage *Storage) {
 			return
 		}
 
-		err = wr.AddCookies(j.Cookies)
+		err = wr.AddCookies(j.Step.Cookies)
 		if err != nil {
 			log.Println("Error adding cookies to Selenium request:", err)
 			return
@@ -121,12 +121,12 @@ func RunSeleniumTest(j Job, seleniumServer string, storage *Storage) {
 		return
 	}
 
-	storage.MetricDistributor <- j.makeMetric("dns_duration_milliseconds", wr.ri.dnsDuration)
-	storage.MetricDistributor <- j.makeMetric("server_connection_duration_milliseconds", wr.ri.serverConnectionDuration)
-	storage.MetricDistributor <- j.makeMetric("server_response_duration_milliseconds", wr.ri.serverResponseDuration)
-	storage.MetricDistributor <- j.makeMetric("server_processing_duration_milliseconds", wr.ri.serverProcessingDuration)
-	storage.MetricDistributor <- j.makeMetric("dom_rendering_duration_milliseconds", wr.ri.domRenderingDuration)
-	storage.MetricDistributor <- j.makeMetric("time_to_first_byte_milliseconds", wr.ri.timeToFirstByte)
+	storage.MetricDistributor <- j.Step.makeMetric("dns_duration_milliseconds", wr.ri.dnsDuration)
+	storage.MetricDistributor <- j.Step.makeMetric("server_connection_duration_milliseconds", wr.ri.serverConnectionDuration)
+	storage.MetricDistributor <- j.Step.makeMetric("server_response_duration_milliseconds", wr.ri.serverResponseDuration)
+	storage.MetricDistributor <- j.Step.makeMetric("server_processing_duration_milliseconds", wr.ri.serverProcessingDuration)
+	storage.MetricDistributor <- j.Step.makeMetric("dom_rendering_duration_milliseconds", wr.ri.domRenderingDuration)
+	storage.MetricDistributor <- j.Step.makeMetric("time_to_first_byte_milliseconds", wr.ri.timeToFirstByte)
 
 	err = wr.wd.Close()
 	if err != nil {
