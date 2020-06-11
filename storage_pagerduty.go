@@ -23,7 +23,7 @@ type PagerDutyConfig struct {
 // PagerDutyStorage holds the configuration for a PagerDuty storage backend
 type PagerDutyStorage struct {
 	config          PagerDutyConfig
-	Client          *pagerduty.Client
+	client          *pagerduty.Client
 	eventTimestamps map[string]time.Time
 }
 
@@ -49,7 +49,7 @@ func NewPagerDutyStorage(c *Config) (PagerDutyStorage, error) {
 		p.config.EventDuration = time.Hour
 	}
 
-	p.Client = pagerduty.NewClient(p.config.RoutingKey)
+	p.client = pagerduty.NewClient(p.config.RoutingKey)
 	p.eventTimestamps = map[string]time.Time{}
 	return p, nil
 }
