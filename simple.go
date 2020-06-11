@@ -37,18 +37,58 @@ import (
 	"net/http/httptrace"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 )
 
+type SimpleJobConfig struct {
+	Name     string            `yaml:"name"`
+	URL      string            `yaml:"url"`
+	Method   string            `yaml:"method"`
+	Interval uint16            `yaml:"interval"`
+	Tags     map[string]string `yaml:"tags,omitempty"`
+}
+
+func (c *SimpleJobConfig) GetJobName() string {
+	return c.Name
+}
+
+type SimpleJob struct {
+	config  *SimpleJobConfig
+	wg      sync.WaitGroup
+	ctx     context.Context
+	storage *Storage
+	client  *http.Client
+}
+
+func (j *SimpleJob) StartJob() {
+	j.wg.Add(1)
+	defer j.wg.Done()
+
+	jobTicker := time.NewTicker(time.Duration(j.config.Interval) * time.Second)
+
+	for {
+		select {
+		case <-jobTicker.C:
+			go j.RunSimpleTest()
+		case <-j.ctx.Done():
+			log.Println("Cancellation request received.  Cancelling job runner.")
+			return
+		}
+	}
+
+	return
+}
+
 // RunSimpleTest starts a simple HTTP/HTTPS test of a site within crabby.  It does
 // not use Selenium to perform this test; instead, it uses Go's built-in net/http client.
-func RunSimpleTest(ctx context.Context, j Job, storage *Storage, client *http.Client) {
-	var method = strings.ToUpper(j.Method)
+func (j *SimpleJob) RunSimpleTest() {
+	var method = strings.ToUpper(j.config.Method)
 	if method == "" {
 		method = http.MethodGet
 	}
 
-	req, err := http.NewRequest(method, j.URL, nil)
+	req, err := http.NewRequest(method, j.config.URL, nil)
 	if err != nil {
 		log.Printf("unable to create request: %v", err)
 		return
@@ -76,16 +116,16 @@ func RunSimpleTest(ctx context.Context, j Job, storage *Storage, client *http.Cl
 	}
 
 	// We'll use our Context in this request in case we have to shut down midstream
-	req = req.WithContext(httptrace.WithClientTrace(ctx, trace))
+	req = req.WithContext(httptrace.WithClientTrace(j.ctx, trace))
 
-	resp, err := client.Do(req)
+	resp, err := j.client.Do(req)
 	if err != nil {
 		log.Println("Failed to read response:", err)
 		return
 	}
 
 	// Send our server response code as an event
-	storage.EventDistributor <- j.makeEvent(resp.StatusCode)
+	j.storage.EventDistributor <- makeEvent(j.config.Name, resp.StatusCode, j.config.Tags)
 
 	// Even though we never read the response body, if we don't close it,
 	// the http.Transport goroutines will terminate and the app will eventually
@@ -98,7 +138,7 @@ func RunSimpleTest(ctx context.Context, j Job, storage *Storage, client *http.Cl
 		t0 = t1
 	}
 
-	url, err := url.Parse(j.URL)
+	url, err := url.Parse(j.config.URL)
 	if err != nil {
 		log.Println("Failed to parse URL:", err)
 		return
@@ -106,18 +146,22 @@ func RunSimpleTest(ctx context.Context, j Job, storage *Storage, client *http.Cl
 
 	switch url.Scheme {
 	case "https":
-		storage.MetricDistributor <- j.makeMetric("dns_duration_milliseconds", t1.Sub(t0).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("server_connection_duration_milliseconds", t2.Sub(t1).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("tls_handshake_duration_milliseconds", t3.Sub(t2).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("server_processing_duration_milliseconds", t4.Sub(t3).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("server_response_duration_milliseconds", t5.Sub(t4).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("time_to_first_byte_milliseconds", t4.Sub(t0).Seconds()*1000)
+		j.storage.MetricDistributor <- j.makeSimpleMetric("dns_duration_milliseconds", t1.Sub(t0).Seconds()*1000)
+		j.storage.MetricDistributor <- j.makeSimpleMetric("server_connection_duration_milliseconds", t2.Sub(t1).Seconds()*1000)
+		j.storage.MetricDistributor <- j.makeSimpleMetric("tls_handshake_duration_milliseconds", t3.Sub(t2).Seconds()*1000)
+		j.storage.MetricDistributor <- j.makeSimpleMetric("server_processing_duration_milliseconds", t4.Sub(t3).Seconds()*1000)
+		j.storage.MetricDistributor <- j.makeSimpleMetric("server_response_duration_milliseconds", t5.Sub(t4).Seconds()*1000)
+		j.storage.MetricDistributor <- j.makeSimpleMetric("time_to_first_byte_milliseconds", t4.Sub(t0).Seconds()*1000)
 
 	case "http":
-		storage.MetricDistributor <- j.makeMetric("dns_duration_milliseconds", t1.Sub(t0).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("server_connection_duration_milliseconds", t3.Sub(t1).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("server_processing_duration_milliseconds", t4.Sub(t3).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("server_response_duration_milliseconds", t5.Sub(t4).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("time_to_first_byte_milliseconds", t4.Sub(t0).Seconds()*1000)
+		j.storage.MetricDistributor <- j.makeSimpleMetric("dns_duration_milliseconds", t1.Sub(t0).Seconds()*1000)
+		j.storage.MetricDistributor <- j.makeSimpleMetric("server_connection_duration_milliseconds", t3.Sub(t1).Seconds()*1000)
+		j.storage.MetricDistributor <- j.makeSimpleMetric("server_processing_duration_milliseconds", t4.Sub(t3).Seconds()*1000)
+		j.storage.MetricDistributor <- j.makeSimpleMetric("server_response_duration_milliseconds", t5.Sub(t4).Seconds()*1000)
+		j.storage.MetricDistributor <- j.makeSimpleMetric("time_to_first_byte_milliseconds", t4.Sub(t0).Seconds()*1000)
 	}
+}
+
+func (j *SimpleJob) makeSimpleMetric(metric string, value float64) Metric {
+	return makeMetric(metric, value, j.config.Name, j.config.URL, j.config.Tags)
 }
