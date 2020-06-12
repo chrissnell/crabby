@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"sync"
@@ -16,8 +18,7 @@ import (
 // storage backend.
 type SplunkHecConfig struct {
 	Token                     string `yaml:"token"`
-	Tenant                    string `yaml:"tenant"`
-	Port                      int    `yaml:"port"`
+	HecURL                    string `yaml:"hec-url"`
 	Host                      string `yaml:"host"`
 	Source                    string `yaml:"source"`
 	MetricsSourceType         string `yaml:"metrics-source-type"`
@@ -25,25 +26,47 @@ type SplunkHecConfig struct {
 	EventsSourceType          string `yaml:"events-source-type"`
 	EventsIndex               string `yaml:"events-index"`
 	SkipCertificateValidation bool   `yaml:"skip-cert-validation"`
+	CaCert                    string `yaml:"ca-cert"`
 }
 
 // SplunkHecStorage holds the configuration of a Splunk HEC storage backend
 type SplunkHecStorage struct {
 	client *http.Client
 	config SplunkHecConfig
-	url    string
 	ctx    context.Context
 }
 
 // NewSplunkHecStorage sets up a new Splunk HEC storage backend
 func NewSplunkHecStorage(c ServiceConfig) (SplunkHecStorage, error) {
+	var s SplunkHecStorage
+	s.config = c.Storage.SplunkHec
 	tr := &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 	}
-	if c.Storage.SplunkHec.SkipCertificateValidation {
-		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	if c.Storage.SplunkHec.CaCert != "" {
+		rootCAs, err := x509.SystemCertPool()
+		if err != nil {
+			return s, fmt.Errorf("unable to load system certificate pool: %v", err)
+		}
+		if rootCAs == nil {
+			return s, fmt.Errorf("unable to append ca-cert, system certificate pool is nil")
+		}
+		certs, err := ioutil.ReadFile(c.Storage.SplunkHec.CaCert)
+		if err != nil {
+			return s, fmt.Errorf("unable to load ca-cert from %s: %v", c.Storage.SplunkHec.CaCert, err)
+		}
+		if ok := rootCAs.AppendCertsFromPEM(certs); !ok {
+			log.Printf("unable to append ca-cert from %s, using system certs only\n", c.Storage.SplunkHec.CaCert)
+		}
+		tr.TLSClientConfig = &tls.Config{
+			RootCAs: rootCAs,
+		}
+	} else {
+		tr.TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: c.Storage.SplunkHec.SkipCertificateValidation,
+		}
 	}
 
 	var requestTimeout time.Duration
@@ -63,11 +86,7 @@ func NewSplunkHecStorage(c ServiceConfig) (SplunkHecStorage, error) {
 		Timeout:   requestTimeout,
 	}
 
-	s := SplunkHecStorage{
-		client: httpClient,
-		config: c.Storage.SplunkHec,
-		url:    fmt.Sprintf("https://%s:%d/services/collector", c.Storage.SplunkHec.Tenant, c.Storage.SplunkHec.Port),
-	}
+	s.client = httpClient
 	return s, nil
 }
 
@@ -157,7 +176,7 @@ func (s SplunkHecStorage) sendMetricOrEvent(index, sourceType string, ts time.Ti
 }
 
 func (s SplunkHecStorage) sendHecEvent(event []byte) error {
-	req, err := http.NewRequestWithContext(s.ctx, http.MethodPost, s.url, bytes.NewBuffer(event))
+	req, err := http.NewRequestWithContext(s.ctx, http.MethodPost, s.config.HecURL, bytes.NewBuffer(event))
 
 	if err != nil {
 		return err

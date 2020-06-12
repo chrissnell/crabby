@@ -78,7 +78,7 @@ func (p PagerDutyStorage) processMetricsAndEvents(ctx context.Context, wg *sync.
 				log.Println(err)
 			}
 		case <-ctx.Done():
-			log.Println("Cancellation request recieved.  Cancelling metrics processop.")
+			log.Println("Cancellation request recieved.  Cancelling metrics processor.")
 			return
 		}
 	}
