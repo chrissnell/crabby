@@ -118,6 +118,14 @@ func (jm *JobManager) BuildJobs() error {
 				return fmt.Errorf("unable to marshall simple job %v: %v", j.Step.Name, err)
 			}
 			jm.jobs = append(jm.jobs, jm.newJob(jc))
+		case "api":
+			jc := new(APIJobConfig)
+			remarshalled, _ := yaml.Marshal(j)
+			err := yaml.Unmarshal(remarshalled, jc)
+			if err != nil {
+				return fmt.Errorf("unable to marshall api job %v: %v", j.Steps[0].Name, err)
+			}
+			jm.jobs = append(jm.jobs, jm.newJob(jc))
 		default:
 			return fmt.Errorf("job type was not specified for job %v. Add a 'type: <jobtype>' to this job's configuration", j.Step.Name)
 		}
@@ -135,6 +143,8 @@ func (jm *JobManager) StartJobs() {
 			go j.(*SimpleJob).StartJob()
 		case *SeleniumJob:
 			go j.(*SeleniumJob).StartJob()
+		case *APIJob:
+			go j.(*APIJob).StartJob()
 		}
 	}
 }
@@ -160,6 +170,14 @@ func (jm *JobManager) newJob(jobconfig JobConfig) Job {
 			wg:      jm.wg,
 			ctx:     jm.ctx,
 			storage: jm.storage}
+	case *APIJobConfig:
+		jobconfig.(*APIJobConfig).Tags = mergeTags(jobconfig.(*APIJobConfig).Tags, jm.serviceConfig.General.Tags)
+		return &APIJob{
+			config:  *c,
+			wg:      jm.wg,
+			ctx:     jm.ctx,
+			storage: jm.storage,
+		}
 	default:
 		return &NoOpJob{}
 	}

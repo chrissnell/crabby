@@ -68,6 +68,26 @@ type APIJob struct {
 	client  *http.Client
 }
 
+// StartJob starts an API job
+func (j *APIJob) StartJob() {
+	j.wg.Add(1)
+	defer j.wg.Done()
+
+	log.Println("Starting job", j.config.Steps[0].Name)
+
+	jobTicker := time.NewTicker(time.Duration(j.config.Interval) * time.Second)
+
+	for {
+		select {
+		case <-jobTicker.C:
+			go j.RunAPITest()
+		case <-j.ctx.Done():
+			log.Println("Cancellation request received.  Cancelling job runner.")
+			return
+		}
+	}
+}
+
 // RunAPITest starts an HTTP/HTTPS API test of a site within crabby.  It uses Go's built-in net/http client.
 func (j *APIJob) RunAPITest() {
 	responses := map[string]json.RawMessage{}
