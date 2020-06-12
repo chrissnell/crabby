@@ -255,5 +255,5 @@ func replacePlaceholders(s string, m map[string]json.RawMessage) (string, error)
 }
 
 func (j *APIJob) makeAPIMetric(js JobStep, metric string, value float64) Metric {
-	return makeMetric(metric, value, js.Name, js.URL, js.Tags)
+	return makeMetric(metric, value, js.Name, js.URL, j.config.Tags)
 }
