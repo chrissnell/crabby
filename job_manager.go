@@ -161,7 +161,8 @@ func (jm *JobManager) newJob(jobconfig JobConfig) Job {
 			wg:      jm.wg,
 			ctx:     jm.ctx,
 			storage: jm.storage,
-			client:  jm.httpclient}
+			client:  jm.httpclient,
+		}
 	case *SeleniumJobConfig:
 		c.seleniumServer = jm.serviceConfig.Selenium.URL
 		jobconfig.(*SeleniumJobConfig).Tags = mergeTags(jobconfig.(*SeleniumJobConfig).Tags, jm.serviceConfig.General.Tags)
@@ -169,7 +170,8 @@ func (jm *JobManager) newJob(jobconfig JobConfig) Job {
 			config:  *c,
 			wg:      jm.wg,
 			ctx:     jm.ctx,
-			storage: jm.storage}
+			storage: jm.storage,
+		}
 	case *APIJobConfig:
 		jobconfig.(*APIJobConfig).Tags = mergeTags(jobconfig.(*APIJobConfig).Tags, jm.serviceConfig.General.Tags)
 		return &APIJob{
@@ -177,6 +179,7 @@ func (jm *JobManager) newJob(jobconfig JobConfig) Job {
 			wg:      jm.wg,
 			ctx:     jm.ctx,
 			storage: jm.storage,
+			client:  jm.httpclient,
 		}
 	default:
 		return &NoOpJob{}
