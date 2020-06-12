@@ -1,4 +1,5 @@
-![Crabby graph of Revinate Engineering Blog performance](https://chrissnell.github.io/crabby/images/engineering-blog-performance.png?1 "")
+![Crabby monitoring of www.okta.com performance](./images/crabby-www.okta.com.png "Crabby monitoring of www.okta.com performance")
+
 
 # crabby
 **crabby** is a website performance tester that measures page load times and reports the measurements to a collection endpoint for processing, monitoring, and viewing.   Crabby can collect and report these metrics:
