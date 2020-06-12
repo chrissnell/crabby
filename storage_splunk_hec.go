@@ -37,7 +37,7 @@ type SplunkHecStorage struct {
 }
 
 // NewSplunkHecStorage sets up a new Splunk HEC storage backend
-func NewSplunkHecStorage(c *Config) (SplunkHecStorage, error) {
+func NewSplunkHecStorage(c ServiceConfig) (SplunkHecStorage, error) {
 	var s SplunkHecStorage
 	s.config = c.Storage.SplunkHec
 	tr := &http.Transport{
