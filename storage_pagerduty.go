@@ -23,12 +23,12 @@ type PagerDutyConfig struct {
 // PagerDutyStorage holds the configuration for a PagerDuty storage backend
 type PagerDutyStorage struct {
 	config          PagerDutyConfig
-	Client          *pagerduty.Client
+	client          *pagerduty.Client
 	eventTimestamps map[string]time.Time
 }
 
 // NewPagerDutyStorage sets up a new PagerDuty storage backend
-func NewPagerDutyStorage(c *Config) (PagerDutyStorage, error) {
+func NewPagerDutyStorage(c ServiceConfig) (PagerDutyStorage, error) {
 	p := PagerDutyStorage{}
 
 	p.config = c.Storage.PagerDuty
@@ -49,44 +49,42 @@ func NewPagerDutyStorage(c *Config) (PagerDutyStorage, error) {
 		p.config.EventDuration = time.Hour
 	}
 
-	p.Client = pagerduty.NewClient(p.config.RoutingKey)
+	p.client = pagerduty.NewClient(p.config.RoutingKey)
 	p.eventTimestamps = map[string]time.Time{}
 	return p, nil
 }
 
-// StartStorageEngine creates a goroutine loop to receive metrics and send
-// them off to a Prometheus pushgateway
+// StartStorageEngine creates a goroutine loop to receive events and send
+// them off to a PagerDuty service
 func (p PagerDutyStorage) StartStorageEngine(ctx context.Context, wg *sync.WaitGroup) (chan<- Metric, chan<- Event) {
-	// PagerDuty storage supports both metrics and events, so we'll initialize both channels
-	metricChan := make(chan Metric, 10)
+	// PagerDuty storage supports only events, so we'll initialize both channels
 	eventChan := make(chan Event, 10)
 
-	// Start processing the metrics we receive
-	go p.processMetricsAndEvents(ctx, wg, metricChan, eventChan)
+	// Start processing the events we receive
+	go p.processMetricsAndEvents(ctx, wg, eventChan)
 
-	return metricChan, eventChan
+	return nil, eventChan
 }
 
-func (p PagerDutyStorage) processMetricsAndEvents(ctx context.Context, wg *sync.WaitGroup, mchan <-chan Metric, echan <-chan Event) {
+func (p PagerDutyStorage) processMetricsAndEvents(ctx context.Context, wg *sync.WaitGroup, echan <-chan Event) {
 	wg.Add(1)
 	defer wg.Done()
 
 	for {
 		select {
-		case <-mchan:
 		case e := <-echan:
 			err := p.sendEvent(e)
 			if err != nil {
 				log.Println(err)
 			}
 		case <-ctx.Done():
-			log.Println("Cancellation request recieved.  Cancelling metrics processop.")
+			log.Println("Cancellation request recieved.  Cancelling metrics processor.")
 			return
 		}
 	}
 }
 
-// sendMetric sends a metric value to PagerDuty
+// sendMetric is not supported, but the method id required to implement StorageEngineInterface
 func (p PagerDutyStorage) sendMetric(m Metric) error {
 	return errors.New("metrics not supported")
 }
