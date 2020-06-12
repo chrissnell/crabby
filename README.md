@@ -57,7 +57,7 @@ Crabby supports sending metrics and events to Splunk via HTTP Event Collector. T
 ![Crabby latency metrics in Splunk](./images/splunk-latency.png "Crabby latency metrics in Splunk")
 
 ## PagerDuty
-Crabby can generate incidents based on failed jobs. Using the PagerDuty's V2 Events api, crabby will generate an incident for jjobs that result in a 4xx or 5xx response code. See [CONFIGURATION.md](./CONFIGURATION.md) for details on how to configure this storage backend.
+Crabby can generate incidents based on failed jobs. Using the PagerDuty's V2 Events API, Crabby will generate an incident for jobs that result in a 4xx or 5xx response code. See [CONFIGURATION.md](./CONFIGURATION.md) for details on how to configure this storage backend.
 
 ![Crabby event PagerDuty](./images/pagerduty-incident.png "Crabby event PagerDuty")
 
