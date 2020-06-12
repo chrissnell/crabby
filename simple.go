@@ -47,6 +47,8 @@ type SimpleJobConfig struct {
 	URL      string            `yaml:"url"`
 	Method   string            `yaml:"method"`
 	Interval uint16            `yaml:"interval"`
+	Cookies  []Cookie          `yaml:"cookies,omitempty"`
+	Header   map[string]string `yaml:"header,omitempty"`
 	Tags     map[string]string `yaml:"tags,omitempty"`
 }
 
@@ -96,6 +98,15 @@ func (j *SimpleJob) RunSimpleTest() {
 	if err != nil {
 		log.Printf("unable to create request: %v", err)
 		return
+	}
+
+	for key, value := range j.config.Header {
+		req.Header.Add(key, value)
+	}
+
+	if len(j.config.Cookies) > 0 {
+		// Add Cookie header
+		req.Header.Add("Cookie", HeaderString(j.config.Cookies))
 	}
 
 	var t0, t1, t2, t3, t4 time.Time

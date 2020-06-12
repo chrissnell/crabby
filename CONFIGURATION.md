@@ -20,12 +20,16 @@ Fields:
 | ---------- | ----------- |
 | `name`     | The name of this test.  This will be used to name your Graphite/Datadog metrics |
 | `type`     | Type of test to conduct.  Can be `selenium` or `simple`. |
-| `url`      | The URL to probe.  Currently only HTTP GETs are supported. |
+| `url`      | The URL to probe. |
+| `method`   | The HTTP method to use. |
 | `interval` | How often crabby will initiate tests. (seconds) |
-| `cookies`  | Cookies that will be set before loading this page.  **This only works for `selenium` tests.** |
+| `header`   | The headers that will be sent as part of the HTTP request. |
+| `cookies`  | Cookies that will be sent as part of the HTTP request or set before the page loads (in selenium tests). This will override the `Cookie` header if set in `headers`. |
 
 ### `cookies`
-The optional `cookies` array holds all cookies to be set for a given job.  **These only apply to `selenium` tests.**  These will be set before loading the page.  Please note that these will generate an additional hit to your site (a 404 URL, intentionally) to work around a Selenium security "feature" that doesn't allow you to set cookies for a site until the browser is already on that site.
+The optional `cookies` array holds all cookies to be sent as part of the HTTP request for a given job. 
+
+In selenium tests, these will be set before loading the page.  Please note that these will generate an additional hit to your site (a 404 URL, intentionally) to work around a Selenium security "feature" that doesn't allow you to set cookies for a site until the browser is already on that site.
 
 | Field Name | Description |
 | ---------- | ----------- |
@@ -165,6 +169,9 @@ jobs:
    type: selenium
    url:  https://mysite.org/some/page/
    interval: 30
+   headers:
+     Authorization: "Bearer: myauthtoken"
+     "X-Custom-Header": "Header 1"
    cookies:
     - name: auth
       domain: mysite.org

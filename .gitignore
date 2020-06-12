@@ -1,3 +1,6 @@
 crabby
 config-*.yaml
 binaries/
+
+# Ignore IDE files
+.idea

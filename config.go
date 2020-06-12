@@ -65,6 +65,7 @@ type StorageConfig struct {
 	Prometheus PrometheusConfig `yaml:"prometheus,omitempty"`
 	Riemann    RiemannConfig    `yaml:"riemann,omitempty"`
 	Log        LogConfig        `yaml:"log,omitempty"`
+	SplunkHec  SplunkHecConfig  `yaml:"splunk-hec,omitempty"`
 }
 
 // NewConfig creates an new config object from the given filename.

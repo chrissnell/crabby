@@ -115,6 +115,12 @@ func NewStorage(ctx context.Context, wg *sync.WaitGroup, c ServiceConfig) (*Stor
 		}
 	}
 
+	if c.Storage.SplunkHec.Tenant != "" {
+		err = s.AddEngine(ctx, wg, "splunk-hec", c)
+		if err != nil {
+			return &s, fmt.Errorf("could not start Splunk HEC storage backend: %v", err)
+		}
+	}
 	// Start our storage distributor to distribute received metrics and events
 	// to storage backends
 	go s.storageDistributor(ctx, wg)
@@ -183,6 +189,16 @@ func (s *Storage) AddEngine(ctx context.Context, wg *sync.WaitGroup, engineName 
 		}
 		se.AcceptsEvents = true
 		se.AcceptsMetrics = false
+		se.M, se.E = se.I.StartStorageEngine(ctx, wg)
+		s.Engines = append(s.Engines, se)
+	case "splunk-hec":
+		se := StorageEngine{}
+		se.I, err = NewSplunkHecStorage(c)
+		if err != nil {
+			log.Fatalln("Could not start Splunk HEC storage backend")
+		}
+		se.AcceptsEvents = true
+		se.AcceptsMetrics = true
 		se.M, se.E = se.I.StartStorageEngine(ctx, wg)
 		s.Engines = append(s.Engines, se)
 	}
