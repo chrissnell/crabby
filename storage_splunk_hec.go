@@ -61,8 +61,7 @@ func NewSplunkHecStorage(c *Config) (SplunkHecStorage, error) {
 			log.Printf("unable to append ca-cert from %s, using system certs only\n", c.Storage.SplunkHec.CaCert)
 		}
 		tr.TLSClientConfig = &tls.Config{
-			InsecureSkipVerify: c.Storage.SplunkHec.SkipCertificateValidation,
-			RootCAs:            rootCAs,
+			RootCAs: rootCAs,
 		}
 	} else {
 		tr.TLSClientConfig = &tls.Config{
