@@ -156,9 +156,6 @@ func (j *APIJob) runAPITestStep(stepNum int, responses map[string]json.RawMessag
 	// unmarshal response and save into map
 	if responses[step.Name], err = ioutil.ReadAll(resp.Body); err != nil {
 		log.Println("error: could not read response body:", err)
-	} else {
-		out, _ := replacePlaceholders(fmt.Sprintf("%s response:\n{{ %s }}\n", step.Name, step.Name), responses)
-		log.Println(out)
 	}
 
 	// Even though we never read the response body, if we don't close it,
