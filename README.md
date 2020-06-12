@@ -1,4 +1,5 @@
-![Crabby graph of Revinate Engineering Blog performance](https://chrissnell.github.io/crabby/images/engineering-blog-performance.png?1 "")
+![Crabby monitoring of www.okta.com performance](./images/crabby-www.okta.com.png "Crabby monitoring of www.okta.com performance")
+
 
 # crabby
 **crabby** is a website performance tester that measures page load times and reports the measurements to a collection endpoint for processing, monitoring, and viewing.   Crabby can collect and report these metrics:
@@ -49,6 +50,17 @@ Crabby supports the sending of performance metrics to Datadog for use in graphic
 
 ![Multi-POP Performance Graph in Grafana](https://chrissnell.github.io/crabby/images/crabby-datadog.png "Graphing Crabby metrics in a Datadog dashboard")
 
+## Splunk
+Crabby supports sending metrics and events to Splunk via HTTP Event Collector. The `config.yaml` in the `examples` directory will get you started. The Splunk storage backend supports specifying the `host`, `source` and `sourceType` values for events and also to which `index` to append them.
+
+![Crabby events and metrics in Splunk](./images/splunk-entries.png "Crabby events and metrics in Splunk")
+
+![Crabby latency metrics in Splunk](./images/splunk-latency.png "Crabby latency metrics in Splunk")
+
+## PagerDuty
+Crabby can generate incidents based on failed jobs. Using the PagerDuty's V2 Events API, Crabby will generate an incident for jobs that result in a 4xx or 5xx response code. See [CONFIGURATION.md](./CONFIGURATION.md) for details on how to configure this storage backend.
+
+![Crabby event PagerDuty](./images/pagerduty-incident.png "Crabby event PagerDuty")
 
 # Using Crabby
 Crabby is configured by a YAML file that you pass via the `-config` flag.  If you don't pass the `-config` flag, Crabby looks for a `config.yaml` by default.  This config file defines the sites to be tested (called "jobs"), as well as the metric storage destination(s) for the metrics that are generated (Graphite, Prometheus, etc.).  Crabby supports multiple metric storage backends _simultaneously_ so you could, for example, send metrics to InfluxDB while simultaneously making them available via the Prometheus endpoint.
