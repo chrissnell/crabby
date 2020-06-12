@@ -30,13 +30,23 @@ type GeneralConfig struct {
 // you are adding a new type of job with new configuration options, be sure to add those
 // options to this struct.
 type MetaJobConfig struct {
-	Name     string            `yaml:"name"`
-	Type     string            `yaml:"type"`
-	URL      string            `yaml:"url"`
-	Method   string            `yaml:"method"`
-	Interval uint16            `yaml:"interval"`
-	Tags     map[string]string `yaml:"tags,omitempty"`
-	Cookies  []Cookie          `yaml:"cookies,omitempty"`
+	Type     string    `yaml:"type"`
+	Step     JobStep   `yaml:",inline"`
+	Steps    []JobStep `yaml:"steps,omitempty"`
+	Interval uint16    `yaml:"interval"`
+}
+
+// JobStep represents a single request.  Jobs are usually a single JobStep but some gatherers support
+// multiple JobStep's.
+type JobStep struct {
+	Name        string            `yaml:"name"`
+	URL         string            `yaml:"url"`
+	Method      string            `yaml:"method"`
+	Tags        map[string]string `yaml:"tags,omitempty"`
+	Cookies     []Cookie          `yaml:"cookies,omitempty"`
+	Header      map[string]string `yaml:"header,omitempty"`
+	ContentType string            `yaml:"content-type,omitempty"` // overwrites Content-type header
+	Body        string            `yaml:"body,omitempty"`
 }
 
 // SeleniumConfig holds the configuration for our Selenium service
@@ -51,6 +61,7 @@ type StorageConfig struct {
 	Graphite   GraphiteConfig   `yaml:"graphite,omitempty"`
 	InfluxDB   InfluxDBConfig   `yaml:"influxdb,omitempty"`
 	Dogstatsd  DogstatsdConfig  `yaml:"dogstatsd,omitempty"`
+	PagerDuty  PagerDutyConfig  `yaml:"pagerduty,omitempty"`
 	Prometheus PrometheusConfig `yaml:"prometheus,omitempty"`
 	Riemann    RiemannConfig    `yaml:"riemann,omitempty"`
 	Log        LogConfig        `yaml:"log,omitempty"`
