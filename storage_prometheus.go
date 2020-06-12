@@ -30,7 +30,7 @@ type PrometheusStorage struct {
 }
 
 // NewPrometheusStorage sets up a new Prometheus storage backend
-func NewPrometheusStorage(c ServiceConfig) PrometheusStorage {
+func NewPrometheusStorage(c *Config) PrometheusStorage {
 	p := PrometheusStorage{}
 
 	p.RegisteredMetrics = make(map[string]*prometheus.GaugeVec)

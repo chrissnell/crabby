@@ -5,10 +5,12 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 )
 
 func main() {
@@ -39,12 +41,34 @@ func main() {
 		go startInternalMetrics(ctx, &wg, s, c.General.InternalMetricsInterval)
 	}
 
-	jm, err := NewJobManager(ctx, &wg, s, c)
-	if err != nil {
-		log.Fatalln("error starting job manager:", err)
+	tr := &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		// We have to disable keep-alives to keep our server connection time
+		// measurements accurate
+		DisableKeepAlives: true,
 	}
 
-	jm.Run()
+	var requestTimeout time.Duration
+
+	if c.General.RequestTimeout == "" {
+		requestTimeout = 15 * time.Second
+	} else {
+		requestTimeout, err = time.ParseDuration(c.General.RequestTimeout)
+		if err != nil {
+			log.Fatalln("could not parse request timeout duration in config:", err)
+		}
+	}
+
+	client := &http.Client{
+		Transport: tr,
+		Timeout:   requestTimeout,
+	}
+
+	defer tr.CloseIdleConnections()
+
+	StartJobs(ctx, &wg, c, s, client)
 
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 

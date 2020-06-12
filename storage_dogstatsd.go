@@ -115,7 +115,7 @@ func (d DogstatsdStorage) sendEvent(e Event) error {
 }
 
 // NewDogstatsdStorage sets up a new Dogstatsd storage backend
-func NewDogstatsdStorage(c ServiceConfig) DogstatsdStorage {
+func NewDogstatsdStorage(c *Config) DogstatsdStorage {
 	var err error
 	d := DogstatsdStorage{}
 
