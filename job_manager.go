@@ -107,7 +107,7 @@ func (jm *JobManager) BuildJobs() error {
 			remarshalled, _ := yaml.Marshal(j)
 			err := yaml.Unmarshal(remarshalled, jc)
 			if err != nil {
-				return fmt.Errorf("unable to marshall simple job %v: %v", j.Name, err)
+				return fmt.Errorf("unable to marshall simple job %v: %v", j.Step.Name, err)
 			}
 			jm.jobs = append(jm.jobs, jm.newJob(jc))
 		case "selenium":
@@ -115,11 +115,11 @@ func (jm *JobManager) BuildJobs() error {
 			remarshalled, _ := yaml.Marshal(j)
 			err := yaml.Unmarshal(remarshalled, jc)
 			if err != nil {
-				return fmt.Errorf("unable to marshall simple job %v: %v", j.Name, err)
+				return fmt.Errorf("unable to marshall simple job %v: %v", j.Step.Name, err)
 			}
 			jm.jobs = append(jm.jobs, jm.newJob(jc))
 		default:
-			return fmt.Errorf("job type was not specified for job %v. Add a 'type: <jobtype>' to this job's configuration", j.Name)
+			return fmt.Errorf("job type was not specified for job %v. Add a 'type: <jobtype>' to this job's configuration", j.Step.Name)
 		}
 	}
 	return nil
