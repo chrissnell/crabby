@@ -31,22 +31,6 @@ jobs:
       path: /
       value: abDijfeiF3290FijEIO30NC9jkqQER
       secure: false
- - name: api_jobs
-   interval: 10
-   type: api
-   tags:
-     region: us-central1
-     isp: google
-   steps:
-     - name: get_something
-       url: https://my-endpoint/get
-       method: get
-     - name: post_something
-       url: https://my-endpoint/post
-       method: post
-       header: { "Content-Type": "application/json" }
-       body: >-
-         { "token": {{ get_something.key1.key2.token }} }
 #
 # Selenium Configuration
 #
@@ -82,13 +66,3 @@ storage:
         metric-namespace: crabby.crabby-sfo-1
         tags:
             - crabby-sfo-1
-    pagerduty:
-        event-namespace: crabby.crabby-sfo-1
-        routing-key: 1234567890123456789012345678012
-        client: crabby
-        event-duration: 1h
-    splunk-hec:
-        token: 12345678-1234-1234-1234-123456789012
-        hec-url: https://http-input-{id}.splunkcloud.com/services/collector
-        source: crabby.crabby-sfo-1
-        index: main

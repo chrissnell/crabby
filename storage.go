@@ -53,7 +53,7 @@ type StorageEngineInterface interface {
 
 // NewStorage creats a Storage object, populated with all configured
 // StorageEngines
-func NewStorage(ctx context.Context, wg *sync.WaitGroup, c ServiceConfig) (*Storage, error) {
+func NewStorage(ctx context.Context, wg *sync.WaitGroup, c *Config) (*Storage, error) {
 	var err error
 
 	s := Storage{}
@@ -101,26 +101,6 @@ func NewStorage(ctx context.Context, wg *sync.WaitGroup, c ServiceConfig) (*Stor
 		}
 	}
 
-	if c.Storage.Log.File != "" {
-		err = s.AddEngine(ctx, wg, "log", c)
-		if err != nil {
-			return &s, fmt.Errorf("could not start Log storage backend: %v", err)
-		}
-	}
-
-	if c.Storage.PagerDuty.RoutingKey != "" {
-		err = s.AddEngine(ctx, wg, "pagerduty", c)
-		if err != nil {
-			return &s, fmt.Errorf("could not start PagerDuty storage backend: %v", err)
-		}
-	}
-
-	if c.Storage.SplunkHec.HecURL != "" {
-		err = s.AddEngine(ctx, wg, "splunk-hec", c)
-		if err != nil {
-			return &s, fmt.Errorf("could not start Splunk HEC storage backend: %v", err)
-		}
-	}
 	// Start our storage distributor to distribute received metrics and events
 	// to storage backends
 	go s.storageDistributor(ctx, wg)
@@ -129,7 +109,7 @@ func NewStorage(ctx context.Context, wg *sync.WaitGroup, c ServiceConfig) (*Stor
 }
 
 // AddEngine adds a new StorageEngine of name engineName to our Storage object
-func (s *Storage) AddEngine(ctx context.Context, wg *sync.WaitGroup, engineName string, c ServiceConfig) error {
+func (s *Storage) AddEngine(ctx context.Context, wg *sync.WaitGroup, engineName string, c *Config) error {
 	var err error
 
 	switch engineName {
@@ -168,36 +148,6 @@ func (s *Storage) AddEngine(ctx context.Context, wg *sync.WaitGroup, engineName 
 		se := StorageEngine{}
 		se.I = NewInfluxDBStorage(c)
 		se.AcceptsEvents = false
-		se.AcceptsMetrics = true
-		se.M, se.E = se.I.StartStorageEngine(ctx, wg)
-		s.Engines = append(s.Engines, se)
-	case "log":
-		se := StorageEngine{}
-		se.I, err = NewLogStorage(c)
-		if err != nil {
-			return err
-		}
-		se.AcceptsEvents = true
-		se.AcceptsMetrics = true
-		se.M, se.E = se.I.StartStorageEngine(ctx, wg)
-		s.Engines = append(s.Engines, se)
-	case "pagerduty":
-		se := StorageEngine{}
-		se.I, err = NewPagerDutyStorage(c)
-		if err != nil {
-			log.Fatalln("Could not start PagerDuty storage backend")
-		}
-		se.AcceptsEvents = true
-		se.AcceptsMetrics = false
-		se.M, se.E = se.I.StartStorageEngine(ctx, wg)
-		s.Engines = append(s.Engines, se)
-	case "splunk-hec":
-		se := StorageEngine{}
-		se.I, err = NewSplunkHecStorage(c)
-		if err != nil {
-			log.Fatalln("Could not start Splunk HEC storage backend")
-		}
-		se.AcceptsEvents = true
 		se.AcceptsMetrics = true
 		se.M, se.E = se.I.StartStorageEngine(ctx, wg)
 		s.Engines = append(s.Engines, se)
