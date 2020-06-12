@@ -2,12 +2,59 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"net/url"
+	"sync"
+	"time"
 
 	"sourcegraph.com/sourcegraph/go-selenium"
 )
+
+// SeleniumJobConfig holds configuration for a selenium job
+type SeleniumJobConfig struct {
+	Name           string            `yaml:"name"`
+	URL            string            `yaml:"url"`
+	Method         string            `yaml:"method"`
+	Interval       uint16            `yaml:"interval"`
+	Tags           map[string]string `yaml:"tags,omitempty"`
+	Cookies        []Cookie          `yaml:"cookies,omitempty"`
+	seleniumServer string
+}
+
+// GetJobName returns the name of the job
+func (c *SeleniumJobConfig) GetJobName() string {
+	return c.Name
+}
+
+// SeleniumJob holds the runtime configuration for a selenium job
+type SeleniumJob struct {
+	config  SeleniumJobConfig
+	wg      *sync.WaitGroup
+	ctx     context.Context
+	storage *Storage
+}
+
+// StartJob starts a selenium job
+func (j *SeleniumJob) StartJob() {
+	j.wg.Add(1)
+	defer j.wg.Done()
+
+	log.Println("Starting job", j.config.Name)
+
+	jobTicker := time.NewTicker(time.Duration(j.config.Interval) * time.Second)
+
+	for {
+		select {
+		case <-jobTicker.C:
+			go j.RunSeleniumTest()
+		case <-j.ctx.Done():
+			log.Println("Cancellation request received.  Cancelling job runner.")
+			return
+		}
+	}
+}
 
 /*
 	Order of occurance for available timing measurements:
@@ -59,12 +106,12 @@ type webRequest struct {
 
 // RunSeleniumTest sends a Selenium job to the Selenium service for running and
 // calculates timings
-func RunSeleniumTest(j Job, seleniumServer string, storage *Storage) {
+func (j *SeleniumJob) RunSeleniumTest() {
 	var err error
 
-	wr := newWebRequest(j.URL)
+	wr := newWebRequest(j.config.URL)
 
-	err = wr.setRemote(seleniumServer)
+	err = wr.setRemote(j.config.seleniumServer)
 	if err != nil {
 		log.Println("Error connecting to Selenium service:", err)
 		return
@@ -80,13 +127,13 @@ func RunSeleniumTest(j Job, seleniumServer string, storage *Storage) {
 	// tos et the cookies.
 
 	// We only need to use this work-around if we have cookies to set
-	if len(j.Cookies) > 0 {
+	if len(j.config.Cookies) > 0 {
 		var buf bytes.Buffer
 		var u *url.URL
 
-		u, err = url.Parse(j.URL)
+		u, err = url.Parse(j.config.URL)
 		if err != nil {
-			log.Printf("Error parsing url %v: %v\n", j.URL, err)
+			log.Printf("Error parsing url %v: %v\n", j.config.URL, err)
 			return
 		}
 
@@ -101,7 +148,7 @@ func RunSeleniumTest(j Job, seleniumServer string, storage *Storage) {
 			return
 		}
 
-		err = wr.AddCookies(j.Cookies)
+		err = wr.AddCookies(j.config.Cookies)
 		if err != nil {
 			log.Println("Error adding cookies to Selenium request:", err)
 			return
@@ -121,12 +168,12 @@ func RunSeleniumTest(j Job, seleniumServer string, storage *Storage) {
 		return
 	}
 
-	storage.MetricDistributor <- j.makeMetric("dns_duration_milliseconds", wr.ri.dnsDuration)
-	storage.MetricDistributor <- j.makeMetric("server_connection_duration_milliseconds", wr.ri.serverConnectionDuration)
-	storage.MetricDistributor <- j.makeMetric("server_response_duration_milliseconds", wr.ri.serverResponseDuration)
-	storage.MetricDistributor <- j.makeMetric("server_processing_duration_milliseconds", wr.ri.serverProcessingDuration)
-	storage.MetricDistributor <- j.makeMetric("dom_rendering_duration_milliseconds", wr.ri.domRenderingDuration)
-	storage.MetricDistributor <- j.makeMetric("time_to_first_byte_milliseconds", wr.ri.timeToFirstByte)
+	j.storage.MetricDistributor <- j.makeSeleniumMetric("dns_duration_milliseconds", wr.ri.dnsDuration)
+	j.storage.MetricDistributor <- j.makeSeleniumMetric("server_connection_duration_milliseconds", wr.ri.serverConnectionDuration)
+	j.storage.MetricDistributor <- j.makeSeleniumMetric("server_response_duration_milliseconds", wr.ri.serverResponseDuration)
+	j.storage.MetricDistributor <- j.makeSeleniumMetric("server_processing_duration_milliseconds", wr.ri.serverProcessingDuration)
+	j.storage.MetricDistributor <- j.makeSeleniumMetric("dom_rendering_duration_milliseconds", wr.ri.domRenderingDuration)
+	j.storage.MetricDistributor <- j.makeSeleniumMetric("time_to_first_byte_milliseconds", wr.ri.timeToFirstByte)
 
 	err = wr.wd.Close()
 	if err != nil {
@@ -293,4 +340,8 @@ func (wr *webRequest) calcIntervals() {
 
 	// timeToFirstByte: Time to return the first byte to the client
 	wr.ri.timeToFirstByte = wr.rt.responseStart - wr.rt.domainLookupStart
+}
+
+func (j *SeleniumJob) makeSeleniumMetric(metric string, value float64) Metric {
+	return makeMetric(metric, value, j.config.Name, j.config.URL, j.config.Tags)
 }
