@@ -41,38 +41,81 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 )
 
 var placeholderRegex = regexp.MustCompile(`{{ *[^}}]* *}}`)
 
-// RunSimpleTest starts an HTTP/HTTPS API test of a site within crabby.  It uses Go's built-in net/http client.
-func RunApiTest(ctx context.Context, j Job, storage *Storage, client *http.Client) {
-	responses := map[string]json.RawMessage{}
-	for _, s := range j.Steps {
-		runApiTestStep(ctx, s, storage, client, responses)
+// APIJobConfig holds the configuration for an API job
+type APIJobConfig struct {
+	Steps    []JobStep
+	Interval uint16            `yaml:"interval"`
+	Tags     map[string]string `yaml:"tags,omitempty"`
+}
+
+// GetJobName returns the name of the job
+func (c *APIJobConfig) GetJobName() string {
+	return c.Steps[0].Name
+}
+
+// APIJob holds the runtime configuration for an API job
+type APIJob struct {
+	config  APIJobConfig
+	wg      *sync.WaitGroup
+	ctx     context.Context
+	storage *Storage
+	client  *http.Client
+}
+
+// StartJob starts an API job
+func (j *APIJob) StartJob() {
+	j.wg.Add(1)
+	defer j.wg.Done()
+
+	log.Println("Starting job", j.config.Steps[0].Name)
+
+	jobTicker := time.NewTicker(time.Duration(j.config.Interval) * time.Second)
+
+	for {
+		select {
+		case <-jobTicker.C:
+			go j.RunAPITest()
+		case <-j.ctx.Done():
+			log.Println("Cancellation request received.  Cancelling job runner.")
+			return
+		}
 	}
 }
 
-func runApiTestStep(ctx context.Context, j JobStep, storage *Storage, client *http.Client, responses map[string]json.RawMessage) {
-	var method = strings.ToUpper(j.Method)
+// RunAPITest starts an HTTP/HTTPS API test of a site within crabby.  It uses Go's built-in net/http client.
+func (j *APIJob) RunAPITest() {
+	responses := map[string]json.RawMessage{}
+	for i := range j.config.Steps {
+		j.runAPITestStep(i, responses)
+	}
+}
+
+func (j *APIJob) runAPITestStep(stepNum int, responses map[string]json.RawMessage) {
+	step := j.config.Steps[stepNum]
+	var method = strings.ToUpper(step.Method)
 	if method == "" {
 		method = http.MethodGet
 	}
 
-	body, err := replacePlaceholders(j.Body, responses)
+	body, err := replacePlaceholders(step.Body, responses)
 	if err != nil {
 		log.Printf("unable to substitute body variables in body: %v", err)
 		return
 	}
 
-	req, err := http.NewRequest(method, j.URL, strings.NewReader(body))
+	req, err := http.NewRequest(method, step.URL, strings.NewReader(body))
 	if err != nil {
 		log.Printf("unable to create request: %v", err)
 		return
 	}
 
-	if err := addHeaders(req, j, responses); err != nil {
+	if err := addHeaders(req, step, responses); err != nil {
 		log.Printf("unable to process headers: %v", err)
 		return
 	}
@@ -99,22 +142,22 @@ func runApiTestStep(ctx context.Context, j JobStep, storage *Storage, client *ht
 	}
 
 	// We'll use our Context in this request in case we have to shut down midstream
-	req = req.WithContext(httptrace.WithClientTrace(ctx, trace))
+	req = req.WithContext(httptrace.WithClientTrace(j.ctx, trace))
 
-	resp, err := client.Do(req)
+	resp, err := j.client.Do(req)
 	if err != nil {
 		log.Println("Failed to read response:", err)
 		return
 	}
 
 	// Send our server response code as an event
-	storage.EventDistributor <- j.makeEvent(resp.StatusCode)
+	j.storage.EventDistributor <- makeEvent(step.Name, resp.StatusCode, step.Tags)
 
 	// unmarshal response and save into map
-	if responses[j.Name], err = ioutil.ReadAll(resp.Body); err != nil {
-		log.Println("WARNING!", err)
+	if responses[step.Name], err = ioutil.ReadAll(resp.Body); err != nil {
+		log.Println("error: could not read response body:", err)
 	} else {
-		out, _ := replacePlaceholders(fmt.Sprintf("%s response:\n{{ %s }}\n", j.Name, j.Name), responses)
+		out, _ := replacePlaceholders(fmt.Sprintf("%s response:\n{{ %s }}\n", step.Name, step.Name), responses)
 		log.Println(out)
 	}
 
@@ -129,7 +172,7 @@ func runApiTestStep(ctx context.Context, j JobStep, storage *Storage, client *ht
 		t0 = t1
 	}
 
-	url, err := url.Parse(j.URL)
+	url, err := url.Parse(step.URL)
 	if err != nil {
 		log.Println("Failed to parse URL:", err)
 		return
@@ -137,22 +180,21 @@ func runApiTestStep(ctx context.Context, j JobStep, storage *Storage, client *ht
 
 	switch url.Scheme {
 	case "https":
-		storage.MetricDistributor <- j.makeMetric("dns_duration_milliseconds", t1.Sub(t0).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("server_connection_duration_milliseconds", t2.Sub(t1).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("tls_handshake_duration_milliseconds", t3.Sub(t2).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("server_processing_duration_milliseconds", t4.Sub(t3).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("server_response_duration_milliseconds", t5.Sub(t4).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("time_to_first_byte_milliseconds", t4.Sub(t0).Seconds()*1000)
+		j.storage.MetricDistributor <- j.makeAPIMetric(step, "dns_duration_milliseconds", t1.Sub(t0).Seconds()*1000)
+		j.storage.MetricDistributor <- j.makeAPIMetric(step, "server_connection_duration_milliseconds", t2.Sub(t1).Seconds()*1000)
+		j.storage.MetricDistributor <- j.makeAPIMetric(step, "tls_handshake_duration_milliseconds", t3.Sub(t2).Seconds()*1000)
+		j.storage.MetricDistributor <- j.makeAPIMetric(step, "server_processing_duration_milliseconds", t4.Sub(t3).Seconds()*1000)
+		j.storage.MetricDistributor <- j.makeAPIMetric(step, "server_response_duration_milliseconds", t5.Sub(t4).Seconds()*1000)
+		j.storage.MetricDistributor <- j.makeAPIMetric(step, "time_to_first_byte_milliseconds", t4.Sub(t0).Seconds()*1000)
 
 	case "http":
-		storage.MetricDistributor <- j.makeMetric("dns_duration_milliseconds", t1.Sub(t0).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("server_connection_duration_milliseconds", t3.Sub(t1).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("server_processing_duration_milliseconds", t4.Sub(t3).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("server_response_duration_milliseconds", t5.Sub(t4).Seconds()*1000)
-		storage.MetricDistributor <- j.makeMetric("time_to_first_byte_milliseconds", t4.Sub(t0).Seconds()*1000)
+		j.storage.MetricDistributor <- j.makeAPIMetric(step, "dns_duration_milliseconds", t1.Sub(t0).Seconds()*1000)
+		j.storage.MetricDistributor <- j.makeAPIMetric(step, "server_connection_duration_milliseconds", t3.Sub(t1).Seconds()*1000)
+		j.storage.MetricDistributor <- j.makeAPIMetric(step, "server_processing_duration_milliseconds", t4.Sub(t3).Seconds()*1000)
+		j.storage.MetricDistributor <- j.makeAPIMetric(step, "server_response_duration_milliseconds", t5.Sub(t4).Seconds()*1000)
+		j.storage.MetricDistributor <- j.makeAPIMetric(step, "time_to_first_byte_milliseconds", t4.Sub(t0).Seconds()*1000)
 	}
 }
-
 
 func addHeaders(req *http.Request, j JobStep, responses map[string]json.RawMessage) error {
 	req.Header = http.Header{}
@@ -183,7 +225,7 @@ func addHeaders(req *http.Request, j JobStep, responses map[string]json.RawMessa
 // 		step2 can access this by putting {{ step1.key.subkey }} to obtain "value"
 // Note: this function will fail if the key contains "." e.g. { "bad.key": value }
 func getResponseValue(s string, m map[string]json.RawMessage) (string, error) {
-	split := strings.SplitN(s, ".",2)
+	split := strings.SplitN(s, ".", 2)
 	value := m[split[0]]
 	if len(split) == 1 {
 		return string(value), nil
@@ -210,4 +252,8 @@ func replacePlaceholders(s string, m map[string]json.RawMessage) (string, error)
 	}
 	format := placeholderRegex.ReplaceAll([]byte(s), []byte("%s"))
 	return fmt.Sprintf(string(format), varvals...), nil
+}
+
+func (j *APIJob) makeAPIMetric(js JobStep, metric string, value float64) Metric {
+	return makeMetric(metric, value, js.Name, js.URL, js.Tags)
 }

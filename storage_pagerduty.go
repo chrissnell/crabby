@@ -28,7 +28,7 @@ type PagerDutyStorage struct {
 }
 
 // NewPagerDutyStorage sets up a new PagerDuty storage backend
-func NewPagerDutyStorage(c *Config) (PagerDutyStorage, error) {
+func NewPagerDutyStorage(c ServiceConfig) (PagerDutyStorage, error) {
 	p := PagerDutyStorage{}
 
 	p.config = c.Storage.PagerDuty

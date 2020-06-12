@@ -25,7 +25,7 @@ type RiemannStorage struct {
 }
 
 // NewRiemannStorage sets up a new Riemann storage backend
-func NewRiemannStorage(c *Config) (RiemannStorage, error) {
+func NewRiemannStorage(c ServiceConfig) (RiemannStorage, error) {
 	r := RiemannStorage{}
 
 	r.Namespace = c.Storage.Riemann.Namespace

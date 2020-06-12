@@ -18,6 +18,7 @@ type LogConfig struct {
 	Time   TimeConfig   `yaml:"time"`
 }
 
+// FormatConfig holds format configuration
 type FormatConfig struct {
 	Metric       string `yaml:"metric"`
 	Event        string `yaml:"event"`
@@ -25,11 +26,13 @@ type FormatConfig struct {
 	TagSeparator string `yaml:"tag-seperator"`
 }
 
+// TimeConfig holds timestamp configuration
 type TimeConfig struct {
 	Location string `yaml:"location"`
 	Format   string `yaml:"format"`
 }
 
+// LogStorage holds the runtime configuration for the log storage driver
 type LogStorage struct {
 	Stream     *os.File
 	Format     FormatConfig
@@ -73,7 +76,8 @@ func (l LogStorage) processMetricsAndEvents(ctx context.Context, wg *sync.WaitGr
 	}
 }
 
-func (l LogStorage) BuildTagFormatString(tags map[string]string) string {
+// buildTagFormatString builds a string from our map of tags
+func (l LogStorage) buildTagFormatString(tags map[string]string) string {
 
 	if len(tags) == 0 {
 		return ""
@@ -91,29 +95,31 @@ func (l LogStorage) BuildTagFormatString(tags map[string]string) string {
 	return strings.TrimSuffix(sb.String(), l.Format.TagSeparator)
 }
 
-func (l LogStorage) BuildMetricFormatString(m Metric) string {
+// buildMetricFormatString builds a string from our metric
+func (l LogStorage) buildMetricFormatString(m Metric) string {
 	replacer := strings.NewReplacer(
 		"%job", m.Job,
 		"%timing", m.Timing,
 		"%value", fmt.Sprintf("%.6g", m.Value),
 		"%time", m.Timestamp.In(l.Location).Format(l.TimeFormat),
 		"%url", m.URL,
-		"%tags", l.BuildTagFormatString(m.Tags))
+		"%tags", l.buildTagFormatString(m.Tags))
 	return replacer.Replace(l.Format.Metric)
 }
 
-func (l LogStorage) BuildEventFormatString(e Event) string {
+// buildEventFormatString builds a string from our event
+func (l LogStorage) buildEventFormatString(e Event) string {
 	replacer := strings.NewReplacer(
 		"%name", e.Name,
 		"%status", fmt.Sprint(e.ServerStatus),
 		"%time", e.Timestamp.In(l.Location).Format(l.TimeFormat),
-		"%tags", l.BuildTagFormatString(e.Tags))
+		"%tags", l.buildTagFormatString(e.Tags))
 	return replacer.Replace(l.Format.Event)
 }
 
 // sendMetric sends a metric value to the log file
 func (l LogStorage) sendMetric(m Metric) error {
-	_, err := l.Stream.WriteString(l.BuildMetricFormatString(m))
+	_, err := l.Stream.WriteString(l.buildMetricFormatString(m))
 	if err != nil {
 		return err
 	}
@@ -122,14 +128,15 @@ func (l LogStorage) sendMetric(m Metric) error {
 
 // sendEvent sends an event to the log file
 func (l LogStorage) sendEvent(e Event) error {
-	_, err := l.Stream.WriteString(l.BuildEventFormatString(e))
+	_, err := l.Stream.WriteString(l.buildEventFormatString(e))
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func NewLogStorage(c *Config) (LogStorage, error) {
+// NewLogStorage creates new log storage object
+func NewLogStorage(c ServiceConfig) (LogStorage, error) {
 	var outStream *os.File
 	var l = LogStorage{}
 

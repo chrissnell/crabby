@@ -53,7 +53,7 @@ type StorageEngineInterface interface {
 
 // NewStorage creats a Storage object, populated with all configured
 // StorageEngines
-func NewStorage(ctx context.Context, wg *sync.WaitGroup, c *Config) (*Storage, error) {
+func NewStorage(ctx context.Context, wg *sync.WaitGroup, c ServiceConfig) (*Storage, error) {
 	var err error
 
 	s := Storage{}
@@ -129,7 +129,7 @@ func NewStorage(ctx context.Context, wg *sync.WaitGroup, c *Config) (*Storage, e
 }
 
 // AddEngine adds a new StorageEngine of name engineName to our Storage object
-func (s *Storage) AddEngine(ctx context.Context, wg *sync.WaitGroup, engineName string, c *Config) error {
+func (s *Storage) AddEngine(ctx context.Context, wg *sync.WaitGroup, engineName string, c ServiceConfig) error {
 	var err error
 
 	switch engineName {
