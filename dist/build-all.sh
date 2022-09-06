@@ -6,6 +6,8 @@ platforms=( darwin linux freebsd windows openbsd )
 
 programs=( crabby )
 
+mkdir -p binaries
+
 for prog in "${programs[@]}"
 do
   PROG_WITH_TAG=${prog}-${TAG}
