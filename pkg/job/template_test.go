@@ -177,8 +177,6 @@ func TestTemplateEngine_Resolve_MalformedJSON(t *testing.T) {
 }
 
 func TestGetResponseValue_MaxDepth(t *testing.T) {
-	// Build deeply nested JSON that exceeds maxJSONDepth
-	var b strings.Builder
 	keys := make([]string, maxJSONDepth+5)
 	for i := range keys {
 		keys[i] = "a"
@@ -188,8 +186,6 @@ func TestGetResponseValue_MaxDepth(t *testing.T) {
 	for i := 0; i < maxJSONDepth+5; i++ {
 		inner = `{"a":` + inner + `}`
 	}
-
-	_ = b // unused, built inline
 
 	responses := StepResponses{
 		"deep": json.RawMessage(inner),
