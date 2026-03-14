@@ -1,0 +1,93 @@
+version: 2
+
+project_name: crabby
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: crabby
+    main: ./cmd/crabby
+    binary: crabby
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+    goos:
+      - linux
+      - darwin
+      - windows
+      - openbsd
+      - freebsd
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: openbsd
+        goarch: arm64
+      - goos: freebsd
+        goarch: arm64
+      - goos: windows
+        goarch: arm64
+
+archives:
+  - id: crabby
+    builds:
+      - crabby
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- if eq .Os "darwin" }}macOS{{ else }}{{ .Os }}{{ end }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
+    files:
+      - README*
+
+nfpms:
+  - id: crabby-deb-rpm
+    builds:
+      - crabby
+    package_name: crabby
+    vendor: chrissnell
+    homepage: https://github.com/chrissnell/crabby
+    description: Website availability and performance monitoring
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/bin
+    contents:
+      - src: packaging/systemd/crabby.service
+        dst: /usr/lib/systemd/system/crabby.service
+      - src: packaging/systemd/crabby.sysusers
+        dst: /usr/lib/sysusers.d/crabby.conf
+      - src: packaging/systemd/crabby.default
+        dst: /etc/default/crabby
+        type: config|noreplace
+    scripts:
+      postinstall: packaging/scripts/postinstall.sh
+      preremove: packaging/scripts/preremove.sh
+      postremove: packaging/scripts/postremove.sh
+
+checksum:
+  name_template: 'checksums.txt'
+
+release:
+  draft: false
+  replace_existing_draft: true
+  replace_existing_artifacts: true
+  target_commitish: '{{ .Commit }}'
+  prerelease: auto
+  mode: replace
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'

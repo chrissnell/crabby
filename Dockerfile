@@ -1,25 +1,17 @@
-FROM ubuntu:16.04
+FROM golang:1.26-alpine AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+ARG VERSION=dev
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    go build -ldflags "-s -w -X main.version=${VERSION}" \
+    -o /crabby ./cmd/crabby
 
-MAINTAINER Chris Snell <chris.snell@gmail.com>
-
-RUN apt-get update && apt-get -y --no-install-recommends install curl ca-certificates
-
-# grab gosu for easy step-down from root
-ENV GOSU_VERSION 1.9
-RUN set -x \
-	&& curl -L -o /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$(dpkg --print-architecture)" \
-	&& curl -L -o /usr/local/bin/gosu.asc "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$(dpkg --print-architecture).asc" \
-	&& export GNUPGHOME="$(mktemp -d)" \
-	&& gpg --keyserver ha.pool.sks-keyservers.net --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4 \
-	&& gpg --batch --verify /usr/local/bin/gosu.asc /usr/local/bin/gosu \
-	&& rm -r "$GNUPGHOME" /usr/local/bin/gosu.asc \
-	&& chmod +x /usr/local/bin/gosu \
-	&& gosu nobody true
-
-VOLUME ["/config"]
-
-ADD crabby /crabby
-
-ADD entrypoint.sh /entrypoint.sh
-
-ENTRYPOINT ["/entrypoint.sh"]
+FROM alpine:latest
+RUN apk add --no-cache ca-certificates chromium \
+    && addgroup -g 10001 -S crabby \
+    && adduser -u 10001 -S crabby -G crabby
+COPY --from=build /crabby /crabby
+USER crabby
+ENTRYPOINT ["/crabby"]

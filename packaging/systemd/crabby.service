@@ -1,0 +1,29 @@
+[Unit]
+Description=Crabby website monitoring
+Documentation=https://github.com/chrissnell/crabby
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=crabby
+Group=crabby
+EnvironmentFile=-/etc/default/crabby
+ExecStart=/usr/bin/crabby -config ${CRABBY_CONFIG}
+Restart=on-failure
+RestartSec=5
+
+# Hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ReadOnlyPaths=/
+ReadWritePaths=/tmp
+
+[Install]
+WantedBy=multi-user.target

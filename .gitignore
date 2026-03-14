@@ -1,4 +1,6 @@
 /crabby
+bin/
+dist/
 config-*.yaml
 binaries/
 scratch/
