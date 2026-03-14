@@ -14,7 +14,9 @@ data:
       request-timeout: {{ .Values.general.requestTimeout | quote }}
       report-internal-metrics: {{ .Values.general.reportInternalMetrics }}
       internal-metrics-gathering-interval: {{ .Values.general.internalMetricsGatheringInterval }}
+      {{- if .Values.general.userAgent }}
       user-agent: {{ .Values.general.userAgent | quote }}
+      {{- end }}
 
     {{- if .Values.browser.enabled }}
     browser:

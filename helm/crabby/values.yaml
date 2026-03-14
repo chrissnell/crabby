@@ -82,8 +82,8 @@ general:
   reportInternalMetrics: false
   # -- Internal metrics gathering interval in seconds
   internalMetricsGatheringInterval: 15
-  # -- Custom User-Agent header
-  userAgent: "crabby/1.0"
+  # -- Custom User-Agent header (defaults to crabby/<version> if empty)
+  userAgent: ""
 
 # -- Browser backend configuration (for browser jobs)
 browser:
