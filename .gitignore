@@ -1,6 +1,8 @@
 crabby
 config-*.yaml
 binaries/
+scratch/
+.scratch/
 
 # Mac
 .DS_Store
