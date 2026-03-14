@@ -2,11 +2,22 @@ VERSION := $(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
 LDFLAGS := -ldflags "-s -w -X main.version=$(VERSION)"
 IMAGE   := ghcr.io/chrissnell/crabby
 
-.PHONY: all build test vet clean \
+.PHONY: all build test vet clean help \
         docker-build docker-push \
         bump-point bump-minor
 
 all: build
+
+help:
+	@echo "build        Build crabby binary"
+	@echo "test         Run tests"
+	@echo "vet          Run go vet"
+	@echo "clean        Remove built binary"
+	@echo "docker-build Build Docker image"
+	@echo "docker-push  Push Docker image"
+	@echo "docker       Build and push Docker image"
+	@echo "bump-point   Tag and push a patch release"
+	@echo "bump-minor   Tag and push a minor release"
 
 build:
 	go build $(LDFLAGS) -o bin/crabby ./cmd/crabby
