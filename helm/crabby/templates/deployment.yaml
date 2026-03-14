@@ -13,6 +13,12 @@ spec:
     metadata:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- if .Values.storage.prometheus.enabled }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ (split ":" .Values.storage.prometheus.listenAddr)._1 | default "8080" }}"
+        prometheus.io/path: "/metrics"
+        prometheus.io/scrape-interval: "{{ include "crabby.minJobInterval" . }}s"
+        {{- end }}
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

@@ -78,3 +78,17 @@ Name of the secret to use for a given backend.
 {{- define "crabby.secretName" -}}
 {{- .existingSecret | default .fullname }}
 {{- end }}
+
+{{/*
+Minimum job interval in seconds across all configured jobs.
+Falls back to 60 if no jobs are defined.
+*/}}
+{{- define "crabby.minJobInterval" -}}
+{{- $min := 60 }}
+{{- range .Values.jobs }}
+  {{- if lt (int .interval) $min }}
+    {{- $min = int .interval }}
+  {{- end }}
+{{- end }}
+{{- $min }}
+{{- end }}

@@ -14,9 +14,7 @@ spec:
       {{- include "crabby.selectorLabels" . | nindent 6 }}
   endpoints:
     - port: metrics
-      {{- with .Values.serviceMonitor.interval }}
-      interval: {{ . }}
-      {{- end }}
+      interval: {{ .Values.serviceMonitor.interval | default (printf "%ss" (include "crabby.minJobInterval" .)) }}
       {{- with .Values.serviceMonitor.scrapeTimeout }}
       scrapeTimeout: {{ . }}
       {{- end }}
