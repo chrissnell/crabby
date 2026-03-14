@@ -39,6 +39,9 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("loading config: %w", err)
 	}
+	if err := c.ResolveSecrets(); err != nil {
+		return fmt.Errorf("resolving secrets: %w", err)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -66,7 +69,7 @@ func run() error {
 
 	userAgent := c.General.UserAgent
 	if userAgent == "" {
-		userAgent = "crabby/1.0"
+		userAgent = "crabby/" + version
 	}
 
 	httpClient := &http.Client{

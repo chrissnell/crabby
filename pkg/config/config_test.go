@@ -259,6 +259,148 @@ func TestLoadNonexistentFile(t *testing.T) {
 	}
 }
 
+func TestReadSecretFile(t *testing.T) {
+	tests := []struct {
+		name     string
+		content  string // if non-empty, write a temp file with this content
+		fallback string
+		noFile   bool // use a nonexistent path
+		want     string
+		wantErr  bool
+	}{
+		{
+			name:    "reads file contents",
+			content: "my-secret-token",
+			want:    "my-secret-token",
+		},
+		{
+			name:    "trims trailing newline",
+			content: "my-secret-token\n",
+			want:    "my-secret-token",
+		},
+		{
+			name:    "trims surrounding whitespace",
+			content: "  my-secret-token  \n",
+			want:    "my-secret-token",
+		},
+		{
+			name:     "empty path returns fallback",
+			fallback: "inline-value",
+			want:     "inline-value",
+		},
+		{
+			name:    "missing file returns error",
+			noFile:  true,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var path string
+			switch {
+			case tt.noFile:
+				path = filepath.Join(t.TempDir(), "nonexistent")
+			case tt.content != "":
+				f := filepath.Join(t.TempDir(), "secret")
+				if err := os.WriteFile(f, []byte(tt.content), 0600); err != nil {
+					t.Fatal(err)
+				}
+				path = f
+			}
+
+			got, err := readSecretFile(path, tt.fallback)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestResolveSecrets(t *testing.T) {
+	writeSecret := func(t *testing.T, content string) string {
+		t.Helper()
+		f := filepath.Join(t.TempDir(), "secret")
+		if err := os.WriteFile(f, []byte(content), 0600); err != nil {
+			t.Fatal(err)
+		}
+		return f
+	}
+
+	t.Run("file overrides inline", func(t *testing.T) {
+		secretPath := writeSecret(t, "from-file\n")
+		c := ServiceConfig{
+			Storage: StorageConfig{
+				InfluxDB: InfluxDBConfig{
+					Token:     "inline-token",
+					TokenFile: secretPath,
+				},
+			},
+		}
+		if err := c.ResolveSecrets(); err != nil {
+			t.Fatal(err)
+		}
+		if c.Storage.InfluxDB.Token != "from-file" {
+			t.Errorf("expected 'from-file', got %q", c.Storage.InfluxDB.Token)
+		}
+	})
+
+	t.Run("inline preserved when no file", func(t *testing.T) {
+		c := ServiceConfig{
+			Storage: StorageConfig{
+				SplunkHec: SplunkHecConfig{
+					Token: "inline-token",
+				},
+			},
+		}
+		if err := c.ResolveSecrets(); err != nil {
+			t.Fatal(err)
+		}
+		if c.Storage.SplunkHec.Token != "inline-token" {
+			t.Errorf("expected 'inline-token', got %q", c.Storage.SplunkHec.Token)
+		}
+	})
+
+	t.Run("pagerduty routing key from file", func(t *testing.T) {
+		secretPath := writeSecret(t, "pd-key-from-file")
+		c := ServiceConfig{
+			Storage: StorageConfig{
+				PagerDuty: PagerDutyConfig{
+					RoutingKeyFile: secretPath,
+				},
+			},
+		}
+		if err := c.ResolveSecrets(); err != nil {
+			t.Fatal(err)
+		}
+		if c.Storage.PagerDuty.RoutingKey != "pd-key-from-file" {
+			t.Errorf("expected 'pd-key-from-file', got %q", c.Storage.PagerDuty.RoutingKey)
+		}
+	})
+
+	t.Run("missing secret file returns error", func(t *testing.T) {
+		c := ServiceConfig{
+			Storage: StorageConfig{
+				InfluxDB: InfluxDBConfig{
+					TokenFile: "/nonexistent/path/secret",
+				},
+			},
+		}
+		if err := c.ResolveSecrets(); err == nil {
+			t.Fatal("expected error for missing secret file")
+		}
+	})
+}
+
 func TestValidateNoJobs(t *testing.T) {
 	tests := []struct {
 		name string

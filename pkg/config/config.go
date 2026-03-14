@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -60,6 +61,7 @@ type PrometheusConfig struct {
 type InfluxDBConfig struct {
 	Host      string `yaml:"host"`
 	Token     string `yaml:"token"`
+	TokenFile string `yaml:"token-file,omitempty"`
 	Org       string `yaml:"org"`
 	Bucket    string `yaml:"bucket"`
 	Namespace string `yaml:"metric-namespace,omitempty"`
@@ -88,15 +90,17 @@ type TimeConfig struct {
 
 // PagerDutyConfig holds PagerDuty configuration.
 type PagerDutyConfig struct {
-	Namespace     string        `yaml:"event-namespace,omitempty"`
-	RoutingKey    string        `yaml:"routing-key"`
-	Client        string        `yaml:"client"`
-	EventDuration time.Duration `yaml:"event-duration,omitempty"`
+	Namespace      string        `yaml:"event-namespace,omitempty"`
+	RoutingKey     string        `yaml:"routing-key"`
+	RoutingKeyFile string        `yaml:"routing-key-file,omitempty"`
+	Client         string        `yaml:"client"`
+	EventDuration  time.Duration `yaml:"event-duration,omitempty"`
 }
 
 // SplunkHecConfig holds Splunk HEC configuration.
 type SplunkHecConfig struct {
 	Token                     string `yaml:"token"`
+	TokenFile                 string `yaml:"token-file,omitempty"`
 	HecURL                    string `yaml:"hec-url"`
 	Host                      string `yaml:"host"`
 	Source                    string `yaml:"source"`
@@ -106,6 +110,46 @@ type SplunkHecConfig struct {
 	EventsIndex               string `yaml:"events-index"`
 	SkipCertificateValidation bool   `yaml:"skip-cert-validation"`
 	CaCert                    string `yaml:"ca-cert"`
+}
+
+// readSecretFile reads a secret from a file path, trimming whitespace.
+// Returns the file contents if path is non-empty, otherwise returns fallback.
+func readSecretFile(path, fallback string) (string, error) {
+	if path == "" {
+		return fallback, nil
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("reading secret file %s: %w", path, err)
+	}
+	return strings.TrimSpace(string(data)), nil
+}
+
+// ResolveSecrets resolves file-based secret references into their inline fields.
+// When both inline and file variants are set, the file takes precedence.
+func (c *ServiceConfig) ResolveSecrets() error {
+	if c.Storage.InfluxDB.TokenFile != "" {
+		token, err := readSecretFile(c.Storage.InfluxDB.TokenFile, c.Storage.InfluxDB.Token)
+		if err != nil {
+			return err
+		}
+		c.Storage.InfluxDB.Token = token
+	}
+	if c.Storage.SplunkHec.TokenFile != "" {
+		token, err := readSecretFile(c.Storage.SplunkHec.TokenFile, c.Storage.SplunkHec.Token)
+		if err != nil {
+			return err
+		}
+		c.Storage.SplunkHec.Token = token
+	}
+	if c.Storage.PagerDuty.RoutingKeyFile != "" {
+		key, err := readSecretFile(c.Storage.PagerDuty.RoutingKeyFile, c.Storage.PagerDuty.RoutingKey)
+		if err != nil {
+			return err
+		}
+		c.Storage.PagerDuty.RoutingKey = key
+	}
+	return nil
 }
 
 // Load reads and parses a config file.
