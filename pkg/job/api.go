@@ -61,10 +61,11 @@ type APIJobConfig struct {
 
 // APIJob performs a multi-step API test.
 type APIJob struct {
-	config   APIJobConfig
-	client   *http.Client
-	tags     map[string]string
-	template TemplateEngine
+	config    APIJobConfig
+	client    *http.Client
+	tags      map[string]string
+	template  TemplateEngine
+	userAgent string
 }
 
 func (j *APIJob) Name() string            { return j.config.Steps[0].Name }
@@ -142,6 +143,9 @@ func (j *APIJob) runStep(ctx context.Context, stepNum int, responses StepRespons
 		result.Error = fmt.Errorf("processing headers: %w", err)
 		result.Duration = time.Since(start)
 		return result
+	}
+	if j.userAgent != "" {
+		req.Header.Set("User-Agent", j.userAgent)
 	}
 
 	var t0, t1, t2, t3, t4 time.Time
@@ -260,9 +264,10 @@ func (f *APIFactory) Create(cfg yaml.Node, opts JobOptions) (Job, error) {
 		return nil, err
 	}
 	return &APIJob{
-		config: c,
-		client: f.Client,
-		tags:   MergeTags(c.Tags, opts.GlobalTags),
+		config:    c,
+		client:    f.Client,
+		tags:      MergeTags(c.Tags, opts.GlobalTags),
+		userAgent: opts.UserAgent,
 	}, nil
 }
 

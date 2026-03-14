@@ -34,9 +34,10 @@ type SimpleJobConfig struct {
 
 // SimpleJob performs a single HTTP request and collects timing metrics.
 type SimpleJob struct {
-	config SimpleJobConfig
-	client *http.Client
-	tags   map[string]string
+	config    SimpleJobConfig
+	client    *http.Client
+	tags      map[string]string
+	userAgent string
 }
 
 func (j *SimpleJob) Name() string            { return j.config.Name }
@@ -59,6 +60,9 @@ func (j *SimpleJob) Run(ctx context.Context) ([]Metric, []Event, error) {
 	}
 	if len(j.config.Cookies) > 0 {
 		req.Header.Add("Cookie", cookie.HeaderString(j.config.Cookies))
+	}
+	if j.userAgent != "" {
+		req.Header.Set("User-Agent", j.userAgent)
 	}
 
 	var t0, t1, t2, t3, t4 time.Time
@@ -142,8 +146,9 @@ func (f *SimpleFactory) Create(cfg yaml.Node, opts JobOptions) (Job, error) {
 		return nil, fmt.Errorf("decoding simple job config: %w", err)
 	}
 	return &SimpleJob{
-		config: c,
-		client: f.Client,
-		tags:   MergeTags(c.Tags, opts.GlobalTags),
+		config:    c,
+		client:    f.Client,
+		tags:      MergeTags(c.Tags, opts.GlobalTags),
+		userAgent: opts.UserAgent,
 	}, nil
 }
