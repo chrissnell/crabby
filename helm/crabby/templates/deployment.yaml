@@ -1,0 +1,145 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "crabby.fullname" . }}
+  labels:
+    {{- include "crabby.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "crabby.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "crabby.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "crabby.serviceAccountName" . }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - -config
+            - /config/config.yaml
+          env:
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- if .Values.storage.prometheus.enabled }}
+          ports:
+            - name: metrics
+              containerPort: {{ (split ":" .Values.storage.prometheus.listenAddr)._1 | default 8080 }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            {{- if include "crabby.needsSecrets" . }}
+            - name: secrets
+              mountPath: /run/secrets
+              readOnly: true
+            {{- end }}
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+        {{- if .Values.browser.enabled }}
+        - name: chrome
+          image: "{{ .Values.browser.sidecar.image }}:{{ .Values.browser.sidecar.tag }}"
+          args:
+            - --no-sandbox
+            - --disable-gpu
+            - --disable-dev-shm-usage
+            - --remote-debugging-address=0.0.0.0
+            - --remote-debugging-port=9222
+          ports:
+            - name: devtools
+              containerPort: 9222
+              protocol: TCP
+          {{- with .Values.browser.sidecar.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "crabby.fullname" . }}
+        {{- if include "crabby.needsSecrets" . }}
+        - name: secrets
+          projected:
+            sources:
+              {{- if and .Values.storage.influxdb.enabled (or .Values.storage.influxdb.token .Values.storage.influxdb.existingSecret) }}
+              - secret:
+                  name: {{ .Values.storage.influxdb.existingSecret | default (include "crabby.fullname" .) }}
+                  items:
+                    - key: influxdb-token
+                      path: influxdb-token
+              {{- end }}
+              {{- if and .Values.storage.splunkHec.enabled (or .Values.storage.splunkHec.token .Values.storage.splunkHec.existingSecret) }}
+              - secret:
+                  name: {{ .Values.storage.splunkHec.existingSecret | default (include "crabby.fullname" .) }}
+                  items:
+                    - key: splunk-hec-token
+                      path: splunk-hec-token
+              {{- end }}
+              {{- if and .Values.storage.pagerduty.enabled (or .Values.storage.pagerduty.routingKey .Values.storage.pagerduty.existingSecret) }}
+              - secret:
+                  name: {{ .Values.storage.pagerduty.existingSecret | default (include "crabby.fullname" .) }}
+                  items:
+                    - key: pagerduty-routing-key
+                      path: pagerduty-routing-key
+              {{- end }}
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

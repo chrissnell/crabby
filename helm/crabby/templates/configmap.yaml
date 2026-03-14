@@ -1,0 +1,177 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "crabby.fullname" . }}
+  labels:
+    {{- include "crabby.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    general:
+      {{- with .Values.general.tags }}
+      tags:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      request-timeout: {{ .Values.general.requestTimeout | quote }}
+      report-internal-metrics: {{ .Values.general.reportInternalMetrics }}
+      internal-metrics-gathering-interval: {{ .Values.general.internalMetricsGatheringInterval }}
+      user-agent: {{ .Values.general.userAgent | quote }}
+
+    {{- if .Values.browser.enabled }}
+    browser:
+      remote-url: {{ default "http://localhost:9222" .Values.browser.remoteUrl | quote }}
+      headless: {{ .Values.browser.headless }}
+    {{- end }}
+
+    {{- if .Values.jobs }}
+    jobs:
+      {{- range .Values.jobs }}
+      - name: {{ .name }}
+        type: {{ .type }}
+        {{- if .url }}
+        url: {{ .url | quote }}
+        {{- end }}
+        interval: {{ .interval }}
+        {{- if .method }}
+        method: {{ .method }}
+        {{- end }}
+        {{- if .headless }}
+        headless: {{ .headless }}
+        {{- end }}
+        {{- if .remoteUrl }}
+        remote-url: {{ .remoteUrl | quote }}
+        {{- end }}
+        {{- with .tags }}
+        tags:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .headers }}
+        headers:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .cookies }}
+        cookies:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .steps }}
+        steps:
+          {{- range . }}
+          - name: {{ .name }}
+            url: {{ .url | quote }}
+            {{- if .method }}
+            method: {{ .method }}
+            {{- end }}
+            {{- if .timeout }}
+            timeout: {{ .timeout | quote }}
+            {{- end }}
+            {{- if .contentType }}
+            content-type: {{ .contentType | quote }}
+            {{- end }}
+            {{- if .body }}
+            body: {{ .body | quote }}
+            {{- end }}
+            {{- with .header }}
+            header:
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
+            {{- with .tags }}
+            tags:
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
+            {{- with .cookies }}
+            cookies:
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+
+    storage:
+      {{- if .Values.storage.prometheus.enabled }}
+      prometheus:
+        listen-addr: {{ .Values.storage.prometheus.listenAddr | quote }}
+        {{- if .Values.storage.prometheus.metricNamespace }}
+        metric-namespace: {{ .Values.storage.prometheus.metricNamespace | quote }}
+        {{- end }}
+      {{- end }}
+
+      {{- if .Values.storage.dogstatsd.enabled }}
+      dogstatsd:
+        host: {{ .Values.storage.dogstatsd.host | quote }}
+        port: {{ .Values.storage.dogstatsd.port }}
+        {{- if .Values.storage.dogstatsd.metricNamespace }}
+        metric-namespace: {{ .Values.storage.dogstatsd.metricNamespace | quote }}
+        {{- end }}
+      {{- end }}
+
+      {{- if .Values.storage.influxdb.enabled }}
+      influxdb:
+        host: {{ .Values.storage.influxdb.host | quote }}
+        {{- if or .Values.storage.influxdb.token .Values.storage.influxdb.existingSecret }}
+        token-file: /run/secrets/influxdb-token
+        {{- end }}
+        org: {{ .Values.storage.influxdb.org | quote }}
+        bucket: {{ .Values.storage.influxdb.bucket | quote }}
+        {{- if .Values.storage.influxdb.metricNamespace }}
+        metric-namespace: {{ .Values.storage.influxdb.metricNamespace | quote }}
+        {{- end }}
+      {{- end }}
+
+      {{- if .Values.storage.log.enabled }}
+      log:
+        file: {{ .Values.storage.log.file | quote }}
+        time:
+          format: {{ .Values.storage.log.time.format | quote }}
+          location: {{ .Values.storage.log.time.location | quote }}
+        format:
+          metric: {{ .Values.storage.log.format.metric | quote }}
+          event: {{ .Values.storage.log.format.event | quote }}
+          tag: {{ .Values.storage.log.format.tag | quote }}
+          tag-seperator: {{ .Values.storage.log.format.tagSeparator | quote }}
+      {{- end }}
+
+      {{- if .Values.storage.splunkHec.enabled }}
+      splunk-hec:
+        hec-url: {{ .Values.storage.splunkHec.hecUrl | quote }}
+        {{- if or .Values.storage.splunkHec.token .Values.storage.splunkHec.existingSecret }}
+        token-file: /run/secrets/splunk-hec-token
+        {{- end }}
+        {{- if .Values.storage.splunkHec.source }}
+        source: {{ .Values.storage.splunkHec.source | quote }}
+        {{- end }}
+        {{- if .Values.storage.splunkHec.host }}
+        host: {{ .Values.storage.splunkHec.host | quote }}
+        {{- end }}
+        {{- if .Values.storage.splunkHec.metricsSourceType }}
+        metrics-source-type: {{ .Values.storage.splunkHec.metricsSourceType | quote }}
+        {{- end }}
+        {{- if .Values.storage.splunkHec.metricsIndex }}
+        metrics-index: {{ .Values.storage.splunkHec.metricsIndex | quote }}
+        {{- end }}
+        {{- if .Values.storage.splunkHec.eventsSourceType }}
+        events-source-type: {{ .Values.storage.splunkHec.eventsSourceType | quote }}
+        {{- end }}
+        {{- if .Values.storage.splunkHec.eventsIndex }}
+        events-index: {{ .Values.storage.splunkHec.eventsIndex | quote }}
+        {{- end }}
+        {{- if .Values.storage.splunkHec.caCert }}
+        ca-cert: {{ .Values.storage.splunkHec.caCert | quote }}
+        {{- end }}
+        skip-cert-validation: {{ .Values.storage.splunkHec.skipCertValidation }}
+      {{- end }}
+
+      {{- if .Values.storage.pagerduty.enabled }}
+      pagerduty:
+        {{- if or .Values.storage.pagerduty.routingKey .Values.storage.pagerduty.existingSecret }}
+        routing-key-file: /run/secrets/pagerduty-routing-key
+        {{- end }}
+        {{- if .Values.storage.pagerduty.eventNamespace }}
+        event-namespace: {{ .Values.storage.pagerduty.eventNamespace | quote }}
+        {{- end }}
+        {{- if .Values.storage.pagerduty.client }}
+        client: {{ .Values.storage.pagerduty.client | quote }}
+        {{- end }}
+        {{- if .Values.storage.pagerduty.eventDuration }}
+        event-duration: {{ .Values.storage.pagerduty.eventDuration | quote }}
+        {{- end }}
+      {{- end }}

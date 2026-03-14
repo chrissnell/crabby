@@ -1,0 +1,276 @@
+# -- Number of replicas
+replicaCount: 1
+
+image:
+  # -- Container image repository
+  repository: ghcr.io/chrissnell/crabby
+  # -- Image pull policy
+  pullPolicy: IfNotPresent
+  # -- Overrides the image tag (default is the chart appVersion)
+  tag: ""
+
+# -- Image pull secrets for private registries
+imagePullSecrets: []
+# -- Override the release name
+nameOverride: ""
+# -- Override the full release name
+fullnameOverride: ""
+
+serviceAccount:
+  # -- Create a ServiceAccount
+  create: true
+  # -- Annotations for the ServiceAccount
+  annotations: {}
+  # -- ServiceAccount name (generated if not set)
+  name: ""
+  # -- Automount API credentials
+  automount: true
+
+# -- Pod annotations
+podAnnotations: {}
+# -- Pod labels
+podLabels: {}
+
+# -- Pod security context
+podSecurityContext: {}
+  # fsGroup: 10001
+
+# -- Container security context
+securityContext: {}
+  # runAsNonRoot: true
+  # runAsUser: 10001
+  # runAsGroup: 10001
+  # readOnlyRootFilesystem: true
+
+service:
+  # -- Service type
+  type: ClusterIP
+  # -- Service port (used when Prometheus storage is enabled)
+  port: 8080
+
+# -- Resource requests and limits
+resources: {}
+  # limits:
+  #   cpu: 500m
+  #   memory: 256Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+# -- Node selector
+nodeSelector: {}
+
+# -- Tolerations
+tolerations: []
+
+# -- Affinity rules
+affinity: {}
+
+# -------------------------------------------------------------------
+# Crabby configuration
+# -------------------------------------------------------------------
+
+# -- General crabby settings
+general:
+  # -- Global tags applied to all metrics
+  tags: {}
+    # crabby-location: "us-east-1"
+    # environment: prod
+  # -- HTTP request timeout (Go duration)
+  requestTimeout: "15s"
+  # -- Report internal memory/goroutine metrics
+  reportInternalMetrics: false
+  # -- Internal metrics gathering interval in seconds
+  internalMetricsGatheringInterval: 15
+  # -- Custom User-Agent header
+  userAgent: "crabby/1.0"
+
+# -- Browser backend configuration (for browser jobs)
+browser:
+  # -- Enable a Chrome sidecar container for browser jobs
+  enabled: false
+  # -- Chrome DevTools Protocol remote URL (auto-set if sidecar enabled)
+  remoteUrl: ""
+  # -- Run browser in headless mode
+  headless: true
+  sidecar:
+    # -- Chrome sidecar image
+    image: zenika/alpine-chrome
+    # -- Chrome sidecar image tag
+    tag: "latest"
+    # -- Chrome sidecar resource requests/limits
+    resources: {}
+      # limits:
+      #   cpu: "1"
+      #   memory: 1Gi
+      # requests:
+      #   cpu: 250m
+      #   memory: 512Mi
+
+# -- Job definitions
+# Each job has: name, type (simple|browser|api), url, interval, and optional
+# tags, headers, cookies, method, steps (for api type)
+jobs: []
+  # - name: my_website
+  #   type: simple
+  #   url: https://example.com/
+  #   interval: 30
+  #   method: GET
+  #   tags:
+  #     region: us-east-1
+  #   headers:
+  #     Authorization: "Bearer token123"
+  #   cookies:
+  #     - name: session
+  #       domain: example.com
+  #       path: /
+  #       value: abc123
+  #       secure: true
+  #
+  # - name: my_page
+  #   type: browser
+  #   url: https://example.com/dashboard
+  #   interval: 60
+  #   headless: true
+  #
+  # - name: api_workflow
+  #   type: api
+  #   interval: 30
+  #   steps:
+  #     - name: auth
+  #       url: https://api.example.com/token
+  #       method: POST
+  #       header:
+  #         Content-Type: application/json
+  #       body: '{"client_id": "xyz"}'
+  #     - name: fetch
+  #       url: https://api.example.com/data
+  #       method: GET
+  #       header:
+  #         Authorization: "Bearer {{ auth.access_token }}"
+
+# -- Storage backend configuration
+storage:
+  # -- Prometheus metrics endpoint
+  prometheus:
+    # -- Enable Prometheus backend
+    enabled: false
+    # -- Listen address inside the container
+    listenAddr: "0.0.0.0:8080"
+    # -- Metric namespace prefix
+    metricNamespace: "crabby"
+
+  # -- Datadog DogStatsD backend
+  dogstatsd:
+    # -- Enable DogStatsD backend
+    enabled: false
+    # -- DogStatsD host
+    host: "localhost"
+    # -- DogStatsD port
+    port: 8125
+    # -- Metric namespace prefix
+    metricNamespace: "crabby"
+
+  # -- InfluxDB v2 backend
+  influxdb:
+    # -- Enable InfluxDB backend
+    enabled: false
+    # -- InfluxDB HTTP(S) URL
+    host: ""
+    # -- API token (use existingSecret for production)
+    token: ""
+    # -- InfluxDB organization
+    org: ""
+    # -- InfluxDB bucket
+    bucket: ""
+    # -- Metric namespace prefix
+    metricNamespace: "crabby"
+    # -- Use an existing Secret for the token (key: influxdb-token)
+    existingSecret: ""
+
+  # -- Log backend (stdout/stderr/file)
+  log:
+    # -- Enable log backend
+    enabled: false
+    # -- Output target: stdout, stderr, or a file path
+    file: "stdout"
+    time:
+      # -- Go time format string
+      format: "2006/01/02 15:04:05"
+      # -- IANA timezone location
+      location: "Local"
+    format:
+      # -- Metric log format
+      metric: "%time [M: %job] %timing: %value (%tags)\n"
+      # -- Event log format
+      event: "%time [E: %name] status: %status (%tags)\n"
+      # -- Tag format
+      tag: "%name: %value"
+      # -- Tag separator
+      tagSeparator: ", "
+
+  # -- Splunk HTTP Event Collector backend
+  splunkHec:
+    # -- Enable Splunk HEC backend
+    enabled: false
+    # -- HEC endpoint URL
+    hecUrl: ""
+    # -- HEC token (use existingSecret for production)
+    token: ""
+    # -- Splunk source field
+    source: "crabby"
+    # -- Splunk host field
+    host: ""
+    # -- Sourcetype for metrics
+    metricsSourceType: ""
+    # -- Index for metrics
+    metricsIndex: ""
+    # -- Sourcetype for events
+    eventsSourceType: ""
+    # -- Index for events
+    eventsIndex: ""
+    # -- Path to custom CA cert (mount via extraVolumes)
+    caCert: ""
+    # -- Skip TLS certificate validation (not for production)
+    skipCertValidation: false
+    # -- Use an existing Secret for the token (key: splunk-hec-token)
+    existingSecret: ""
+
+  # -- PagerDuty incident backend
+  pagerduty:
+    # -- Enable PagerDuty backend
+    enabled: false
+    # -- Integration routing key (use existingSecret for production)
+    routingKey: ""
+    # -- Event namespace prefix
+    eventNamespace: "crabby"
+    # -- Client name
+    client: "crabby"
+    # -- Minimum duration between duplicate incidents
+    eventDuration: "1h"
+    # -- Use an existing Secret for the routing key (key: pagerduty-routing-key)
+    existingSecret: ""
+
+# -- ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  # -- Create a ServiceMonitor resource
+  enabled: false
+  # -- Additional labels for the ServiceMonitor
+  labels: {}
+  # -- Scrape interval
+  interval: ""
+  # -- Scrape timeout
+  scrapeTimeout: ""
+  # -- Metric relabeling configs
+  metricRelabelings: []
+  # -- Relabeling configs
+  relabelings: []
+
+# -- Extra environment variables
+extraEnv: []
+
+# -- Extra volumes to mount
+extraVolumes: []
+
+# -- Extra volume mounts
+extraVolumeMounts: []

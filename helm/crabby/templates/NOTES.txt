@@ -1,0 +1,39 @@
+Crabby has been deployed.
+
+{{- if .Values.storage.prometheus.enabled }}
+
+Prometheus metrics are available on port {{ .Values.service.port }}.
+{{- if .Values.serviceMonitor.enabled }}
+A ServiceMonitor has been created for Prometheus Operator auto-discovery.
+{{- else }}
+To scrape metrics, point Prometheus at:
+  {{ include "crabby.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/metrics
+{{- end }}
+{{- end }}
+
+{{- if .Values.browser.enabled }}
+
+A Chrome sidecar is running for browser-based jobs.
+{{- end }}
+
+Configured storage backends:
+{{- if .Values.storage.prometheus.enabled }}
+  - Prometheus ({{ .Values.storage.prometheus.listenAddr }})
+{{- end }}
+{{- if .Values.storage.dogstatsd.enabled }}
+  - DogStatsD ({{ .Values.storage.dogstatsd.host }}:{{ .Values.storage.dogstatsd.port }})
+{{- end }}
+{{- if .Values.storage.influxdb.enabled }}
+  - InfluxDB ({{ .Values.storage.influxdb.host }})
+{{- end }}
+{{- if .Values.storage.log.enabled }}
+  - Log ({{ .Values.storage.log.file }})
+{{- end }}
+{{- if .Values.storage.splunkHec.enabled }}
+  - Splunk HEC
+{{- end }}
+{{- if .Values.storage.pagerduty.enabled }}
+  - PagerDuty
+{{- end }}
+
+Jobs configured: {{ len .Values.jobs }}

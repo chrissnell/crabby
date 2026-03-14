@@ -1,0 +1,17 @@
+{{- if .Values.storage.prometheus.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "crabby.fullname" . }}
+  labels:
+    {{- include "crabby.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+  selector:
+    {{- include "crabby.selectorLabels" . | nindent 4 }}
+{{- end }}

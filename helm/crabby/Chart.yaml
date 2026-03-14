@@ -1,0 +1,17 @@
+apiVersion: v2
+name: crabby
+description: Website performance monitoring with multi-backend metrics reporting
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - monitoring
+  - performance
+  - metrics
+  - prometheus
+  - website
+home: https://github.com/chrissnell/crabby
+sources:
+  - https://github.com/chrissnell/crabby
+maintainers:
+  - name: chrissnell
