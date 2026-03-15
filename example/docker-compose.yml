@@ -1,16 +1,11 @@
-version: '2'
 services:
-  selenium:
-    network_mode: "host"
-    image: selenium/standalone-chrome
-    ports:
-     - "127.0.0.1:4444:4444"
   crabby:
-    network_mode: "host"
-    image: chrissnell/crabby
+    image: ghcr.io/chrissnell/crabby:latest
+    restart: unless-stopped
     environment:
-    - CRABBY_CONFIG=/config/config.yaml
+      CRABBY_CONFIG: /config/config.yaml
     volumes:
-     - /etc/crabby:/config
-    depends_on:
-     - selenium
+      - ./config.yaml:/config/config.yaml:ro
+    ports:
+      # Expose Prometheus metrics endpoint (if enabled in config)
+      - "9090:9090"

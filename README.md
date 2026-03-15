@@ -152,3 +152,6 @@ If you prefer, [binaries are available](https://github.com/chrissnell/crabby/rel
 # Crabby Configuration
 Crabby is configured by a YAML file that you pass via the `-config` flag (defaults to `config.yaml`).
 See [CONFIGURATION.md](/CONFIGURATION.md) for a detailed description of this file.  There is also [an example](/example/config.yaml), if you need one.
+
+# Contributing
+Interested in adding a new storage backend or job type?  See [DEVELOPING.md](/DEVELOPING.md) for architecture details, project layout, and step-by-step guides for extending Crabby.

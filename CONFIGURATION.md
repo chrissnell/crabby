@@ -2,243 +2,189 @@
 Crabby is configured by means of a YAML file that's passed via the `-config` command line parameter when you start Crabby.
 
 ## `general` - General configuration options
-This holds general configuration for the Crabby site and service.
-Fields:
 
-| Field Name     | Description |
-| -------------- | ----------- |
-| `hostname`     | The hostname of this Crabby server (optional) |
-| `location`     | The geographical location of this Crabby server (optional) |
-| `provider`     | The hosting or network provider for this Crabby server (optional) |
-| `request-timeout` | The timeout to use when making HTTP requests for jobs (default: 15s) |
+| Field Name | Description |
+| ---------- | ----------- |
+| `request-timeout` | Timeout for HTTP requests (Go duration string, default: `15s`) |
+| `user-agent` | Custom User-Agent header sent with all HTTP requests (defaults to `crabby/<version>`) |
+| `report-internal-metrics` | Report internal runtime metrics (heap, goroutines) to storage backends. `true` or `false` (default: `false`) |
+| `internal-metrics-gathering-interval` | How often to gather internal metrics, in seconds (default: `15`) |
+| `tags` | Global tags applied to all jobs and their metrics. Per-job tags override globals on name conflict. |
 
 ## `jobs` - Configuring pages and URLs to test
-The top-level `jobs` array holds a list of all of the sites and URLs that Crabby will test.  There are two types of tests that Crabby can conduct, `selenium` and `simple`, and these are discussed in [README.md](/README.md).
-Fields:
+The top-level `jobs` array holds all of the sites and URLs that Crabby will test.  There are three types of probes: `simple`, `browser`, and `api`.
+
+### Common job fields
 
 | Field Name | Description |
 | ---------- | ----------- |
-| `name`     | The name of this test.  This will be used to name your Graphite/Datadog metrics |
-| `type`     | Type of test to conduct.  Can be `selenium` or `simple`. |
-| `url`      | The URL to probe. |
-| `method`   | The HTTP method to use. |
-| `interval` | How often crabby will initiate tests. (seconds) |
-| `header`   | The headers that will be sent as part of the HTTP request. |
-| `cookies`  | Cookies that will be sent as part of the HTTP request or set before the page loads (in selenium tests). This will override the `Cookie` header if set in `headers`. |
+| `name` | The name of this job. Used as the metric name in storage backends. |
+| `type` | Type of probe: `simple`, `browser`, or `api`. |
+| `url` | The URL to probe (not used for `api` type — see `steps`). |
+| `interval` | How often Crabby runs this job, in seconds. |
+| `tags` | Per-job tags applied only to this job's metrics. |
+
+### `simple` job fields
+
+| Field Name | Description |
+| ---------- | ----------- |
+| `method` | HTTP method to use (default: `GET`). |
+| `header` | Map of HTTP headers to send with the request. |
+| `cookies` | List of cookies to send with the request (see below). |
+
+### `browser` job fields
+
+| Field Name | Description |
+| ---------- | ----------- |
+| `headless` | Run Chrome in headless mode. `true` or `false` (default: inherited from `browser` section). |
+| `remote-url` | Override the Chrome DevTools Protocol URL for this job. |
+| `cookies` | List of cookies to set before loading the page. |
+
+### `api` job fields
+
+API jobs define a multi-step workflow. Instead of a single `url`, they use a `steps` array.
+
+| Field Name | Description |
+| ---------- | ----------- |
+| `steps` | Array of sequential HTTP requests (see below). |
+
+#### `steps` - API job steps
+
+Each step runs in order.  Responses from earlier steps can be referenced in later steps using `{{ step_name.field.nested_field }}` template syntax.
+
+| Field Name | Description |
+| ---------- | ----------- |
+| `name` | Step name (used for template references from later steps). |
+| `url` | The URL to request. May contain template references. |
+| `method` | HTTP method (`GET`, `POST`, etc.). |
+| `header` | Map of HTTP headers. |
+| `body` | Request body string. May contain template references. |
+| `content-type` | Shorthand for setting the Content-Type header. |
+| `timeout` | Per-step timeout (Go duration string). |
+| `cookies` | List of cookies to send. |
+| `tags` | Per-step tags. |
 
 ### `cookies`
-The optional `cookies` array holds all cookies to be sent as part of the HTTP request for a given job. 
-
-In selenium tests, these will be set before loading the page.  Please note that these will generate an additional hit to your site (a 404 URL, intentionally) to work around a Selenium security "feature" that doesn't allow you to set cookies for a site until the browser is already on that site.
+The optional `cookies` array holds cookies to be sent with HTTP requests.
 
 | Field Name | Description |
 | ---------- | ----------- |
-| `name`     | The name of the cookie to be set. |
-| `domain`   | The domain or subdomain for which the cookie is valid. |
-| `path`     | The path for which the cookie is valid.  Typically `/`. |
-| `value`    | The value of the cookie to be set. |
-| `secure`  | May be `true` or `false`.  If `true`, cookie will only be sent over HTTPS. |
+| `name` | Cookie name. |
+| `domain` | Domain or subdomain for which the cookie is valid. |
+| `path` | Path for which the cookie is valid (typically `/`). |
+| `value` | Cookie value. |
+| `secure` | `true` or `false`. If `true`, cookie is only sent over HTTPS. |
 
-## `selenium` - Selenium server configuration
-The `selenium` dictionary holds a few parameters for the Selenium testing service.
+## `browser` - Chrome browser configuration
+Required only if you have `browser`-type jobs.
 
 | Field Name | Description |
 | ---------- | ----------- |
-| `url`     | The URL of the Selenium RESTful API.  Typically *someserver*:4444/wd/hub |
-| `job-stagger-offset`   | To avoid launching multiple Selenium jobs at the same time and stressing your crabby server with lots of concurrent browser activity, Crabby staggers the start of the jobs.  If your job has, for example, an interval of 30 seconds, it will be executed every 30 seconds...but, this 30 second interval will not commence at t=0.  Rather, Crabby will choose a random offset for each job that is somewhere between zero and `job-stagger-offset` seconds.  So, if you specify a job `interval` of 30 seconds and a `job-stagger-offset` of 15, Crabby will randomly choose an offset between 0 and 15.  It might choose 7 seconds, in which case your job will execute at t=7s, 37s, 1m7s, 1m37s, and so on... It is recommended that you choose a `job-stagger-offset` that's less than the largest `interval` that you've chosen for your jobs. **TO-DO: Build a better job scheduling algorithm**
-|
+| `remote-url` | Chrome DevTools Protocol URL (e.g. `http://localhost:9222`). |
+| `headless` | Run Chrome in headless mode. `true` or `false` (default: `true`). |
 
 ## `storage` - Metrics handling configuration
-The `storage` dictionary holds configuration for the various metrics storage and handling backends.  Currently, two storage backends are supported, `graphite` and Datadog's `dogstatsd`.
+The `storage` section holds configuration for metrics and event delivery backends. You can enable any combination of backends simultaneously.
 
-### `graphite` - Graphite server configuration
-
-| Field Name | Description |
-| ---------- | ----------- |
-| `host`     | The hostname for your Graphite server. |
-| `port`     | The port that your Graphite server listens on for metrics submission.  Typically 2003. |
-| `protocol`     | `tcp` or `udp`.  Defaults to `tcp`. |
-| `namespace`    | A prefix to prepend to all of your metric names.  Useful for when you have more than one Crabby server or use your Graphite server for other things.  Example:  `crabby.crabby-nyc-01` |
-
-### `dogstatsd` - Datadog dogstatd configuration
+### `prometheus` - Prometheus endpoint
 
 | Field Name | Description |
 | ---------- | ----------- |
-| `host`     | The hostname for your dogstatsd server.  Typically `localhost` if you're running dd-agent locally |
-| `port`     | The port that your dogstatsd server listens on for metrics submission.  Typically 8125. |
-| `namespace`    | A prefix to prepend to all of your metric names.  Recommened to keep Crabby metrics from getting mixed in with other Datadog metrics.  Example:  `crabby` |
-| `tags`    | A YAML list/array of Datadog tags to apply to all submitted metrics.  If you have more than one Crabby node, it's recommended that you set the hostname of the node as a tag.  Example: `crabby-sfo-01` |
+| `listen-addr` | Address and port for the Prometheus metrics endpoint (e.g. `0.0.0.0:9090`). |
+| `metric-namespace` | Prefix for all Prometheus metric names (default: `crabby`). |
 
-### `prometheus` - Prometheus server configuration
+### `dogstatsd` - DogStatsD
 
 | Field Name | Description |
 | ---------- | ----------- |
-| `host`     | The hostname for your Prometheus pushgateway server. |
-| `port`     | The port that your Prometheus pushgateway listens on for metrics submission.  Typically 9091. |
-| `namespace`    | A prefix to prepend to all of your metric names.  This gets mapped into a Prometheus grouping.  If you provide a namespace here, a grouping of `crabby => NAMESPACE` is created.  Otherwise, a default grouping of `collector => HOSTNAME` is created.  Useful for when you have more than one Crabby server.    Example:  `crabby.crabby-nyc-01` |
+| `host` | DogStatsD host (typically `localhost` if running the Datadog Agent locally). |
+| `port` | DogStatsD port (typically `8125`). |
+| `metric-namespace` | Prefix for all metric names. |
 
-### `riemann` - Riemann server configuration
-
-| Field Name | Description |
-| ---------- | ----------- |
-| `host`     | The hostname for your Prometheus pushgateway server. |
-| `port`     | The port that your Prometheus pushgateway listens on for metrics submission.  Typically 9091. |
-| `namespace`    | A prefix to prepend to all of your metric names.  If you omit `namespace`, "crabby" will be automatically prepended.|
-| `tags`    | A YAML list/array of strings to apply as tags to all submitted events.  If you have more than one Crabby node, it's recommended that you set the hostname of the node as a tag.  Example: `crabby-sfo-01` |
-
-
-### `influxdb` - InfluxDB server configuration
+### `influxdb` - InfluxDB v2
 
 | Field Name | Description |
 | ---------- | ----------- |
-| `host`     | The hostname for your Graphite server. |
-| `port`     | The port that your Graphite server listens on for metrics submission.  Typically 2003. |
-| `protocol`     | `tcp` or `udp`.  Defaults to `tcp`. |
-| `namespace`    | A prefix to prepend to all of your metric names.  Useful for when you have more than one Crabby server or use your Graphite server for other things.  Example:  `crabby.crabby-nyc-01` |
+| `host` | InfluxDB HTTP(S) URL (e.g. `http://influxdb:8086`). |
+| `token` | InfluxDB API token. |
+| `token-file` | Path to a file containing the API token (useful for mounted Kubernetes Secrets). Overrides `token`. |
+| `org` | InfluxDB organization. |
+| `bucket` | InfluxDB bucket. |
+| `metric-namespace` | Prefix for all metric names. |
 
-### `log` - Log file configuration 
-
-| Field Name | Description | 
-| ---------- | ----------- |
-| `file`     | `stdout`, `stderr`, or a path to a file this storage engine will write to. | 
-| `time`     | Time options for logging. |
-| `format`   | Format options for logging. |
-
-#### `log.time` - Log time configuration 
-
-| Field Name | Description | 
-| ---------- | ----------- |
-| `format`   | A [Go time format string](https://golang.org/pkg/time/#Time.Format) used to format timestamps. Defaults to `2006/01/02 15:04:05`.|
-| `location` | A [Go time location string](https://golang.org/pkg/time/#LoadLocation) used to determine the timezone. Defaults to `Local`. |
-
-#### `log.format` - Log file time configuration
-
-| Field Name | Description | 
-| ---------- | ----------- |
-| `metric`   | The format string used when logging metrics. Defaults to `%time [M: %job] %timing: %value (%tags)\n`.|
-| `event`    | The format string used when logging events. Defaults to `%time [E: %name] status: %status (%tags)\n`.|
-| `tags`     | The format string used to build a concatenated string of tags. Defaults to `%name: %value`.|
-| `tag-separator` | A string used to separate individual tags when building the `%tags` string. |
-
-##### `metric` format variables
-
-The following format variables are available to use in the `log.format.metric` format string.
-
-| Format Variable | Description |
-| --------------- | ----------- |
-| `%job`          | The name of the job that this metric was defined by. |
-| `%timing`       | The name of the timing metric being measured. |
-| `%value`        | The value of the timing metric that was recorded. |
-| `%time`         | The time this metric was recorded. |
-| `%url`          | The URL of the job. |
-| `%tags`         | A string that represents the tags of the job, formatted by the `log.format.tags` format string |
-
-
-##### `event` format variables
-
-The following format variables are available to use in the `log.format.event` format string.
-
-| Format Variable | Description |
-| --------------- | ----------- |
-| `%event`         | The name of the event that was triggered. |
-| `%status`       | The server status recorded by the event. |
-| `%time`         | The time this event was triggered. |
-| `%tags`         | A string that represents the tags of the event, formatted by the `log.format.tags` format string |
-
-##### `tag` format variables
-The following format variables are available to use in the `log.format.tag` format string.
-
-| Format Variable | Description |
-| --------------- | ----------- |
-| `%name`         | The name of the tag. |
-| `%value`        | The value of the tag. |
-
-### `splunk-hec` - Splunk HTTP Event Collector configuration
+### `splunk-hec` - Splunk HTTP Event Collector
 
 | Field Name | Description |
 | ---------- | ----------- |
-| `token`     | The token for your Splunk HTTP Event Collector server. |
-| `hec-url`     | The url of your HTTP Event Colelctor e.g. `https://http-inputs-{id}.splunkcloud.com/services/collector`. See [Set up and use HTTP Event Collector in Splunk Web](https://docs.splunk.com/Documentation/Splunk/8.0.4/Data/UsetheHTTPEventCollector) for more information about Splunk HEC. | 
-| `source`     | The source for crabby events and metrics in Splunk, default value is `crabby`. |
-| `metrics-source-type`     | The source type for crabby metric entries in Splunk, default value is `metrics`. |
-| `events-source-type`     | The source type for crabby event entries in Splunk, default value is `events`. |
-| `metrics-index`     | The index where crabby metrics will be appended, default value is `main`. |
-| `events-index`     | The index where crabby events will be appended, default value is `main`. |
-| `ca-cert`     | Absolute path to a CA certificate to be used to validate the `hec-url`. |
-| `skip-cert-validation`     | Disables SSL certificate validation for the `hec-url` use it only for testing. |
+| `hec-url` | HEC endpoint URL (e.g. `https://splunk:8088/services/collector`). |
+| `token` | HEC authentication token. |
+| `token-file` | Path to a file containing the HEC token. Overrides `token`. |
+| `source` | Splunk `source` field (default: `crabby`). |
+| `host` | Splunk `host` field. |
+| `metrics-source-type` | Source type for metric entries. |
+| `metrics-index` | Index for metric entries. |
+| `events-source-type` | Source type for event entries. |
+| `events-index` | Index for event entries. |
+| `ca-cert` | Path to a CA certificate for validating the HEC URL. |
+| `skip-cert-validation` | Disable TLS certificate validation (testing only). |
 
-### `pagerduty` - Pager Duty configuration
-
-| Field Name | Description |
-| ---------- | ----------- |
-| `routing-key`     | The routing key for your PagerDuty service. See [Services and Integrations](https://support.pagerduty.com/docs/services-and-integrations) for more information. |
-| `event-duration`     | Minimum duration between events, crabby will generate at most one incident for any events during this period. The value can be a number followed by a unit such as `300ms`, `1.5h` or `2h45m`. Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h". |
-| `namespace`     | A prefix to prepend to all of your event names, default value is `crabby`|
-| `client`     | Client value for all of your Pager Duty event names, default value is `crabby`|
-
-## Internal Metrics Reporting
-Optionally, Crabby can report metrics about itself to your storage backends, including memory (heap) and goroutine usage.  This is especially useful if you are doing development on Crabby and trying to track down runtime problems.
+### `pagerduty` - PagerDuty V2 Events
 
 | Field Name | Description |
 | ---------- | ----------- |
-| `report-internal-metrics`     | Whether or not to report internal runtime metrics.  `true` or `false`.  Defaults to `false`. |
-| `internal-metrics-gathering-interval`     | How often to gather and report these metrics (seconds).  Defaults to 15. |
+| `routing-key` | PagerDuty integration routing key. See [PagerDuty Services and Integrations](https://support.pagerduty.com/docs/services-and-integrations). |
+| `routing-key-file` | Path to a file containing the routing key. Overrides `routing-key`. |
+| `event-namespace` | Prefix for event names (default: `crabby`). |
+| `client` | Client identifier in PagerDuty events (default: `crabby`). |
+| `event-duration` | Minimum duration between duplicate incidents (Go duration string, e.g. `1h`). |
 
+### `log` - Log output
 
-# Complete Configuration File Example
-```yaml
-jobs:
- - name: my_site_some_page
-   type: selenium
-   url:  https://mysite.org/some/page/
-   interval: 30
-   headers:
-     Authorization: "Bearer: myauthtoken"
-     "X-Custom-Header": "Header 1"
-   cookies:
-    - name: auth
-      domain: mysite.org
-      path: /
-      value: DEADBEEFC0W123456789
-      secure: true
-    - name: session
-      domain: mysite.org
-      path: /
-      value: abDijfeiF3290FijEIO30NC9jkqQER
-      secure: false
- - name: another_page
-   type: simple
-   url: https://some-other-site.org/some/page
-   interval: 10
-selenium:
- url: http://localhost:4444/wd/hub
- job-stagger-offset: 30
-storage:
-    graphite:
-        host:  graphite.mysite.org
-        port: 2003
-        protocol: tcp
-        metric-namespace: crabby
-    dogstatsd:
-        host: localhost
-        port: 8125
-        metric-namespace: crabby
-        tags:
-            - crabby-sfo-1
-    influxdb:
-        host: telegraf.mysite.org
-        port: 8086
-        metric-namespace: crabby
-    log: 
-        file: stdout
-        time:
-            format: "2006/01/02 15:04:05"
-            location: "Local"
-        format:
-            metric: "%time %job %timing: %value (%tags)\n"
-            event: "%time %name: %status (%tags)\n"
-            tag: "%name: %value"
-            tag-seperator: ", "
-report-internal-metrics: true
-internal-metrics-gathering-interval: 15
-```
+| Field Name | Description |
+| ---------- | ----------- |
+| `file` | `stdout`, `stderr`, or a file path. |
+| `time` | Time formatting options (see below). |
+| `format` | Output format options (see below). |
+
+#### `log.time`
+
+| Field Name | Description |
+| ---------- | ----------- |
+| `format` | [Go time format string](https://golang.org/pkg/time/#Time.Format) (default: `2006/01/02 15:04:05`). |
+| `location` | [Go time location](https://golang.org/pkg/time/#LoadLocation) for timestamps (default: `Local`). |
+
+#### `log.format`
+
+| Field Name | Description |
+| ---------- | ----------- |
+| `metric` | Format string for metric lines (default: `%time [M: %job] %timing: %value (%tags)\n`). |
+| `event` | Format string for event lines (default: `%time [E: %name] status: %status (%tags)\n`). |
+| `tag` | Format string for individual tags (default: `%name: %value`). |
+| `tag-seperator` | String used to join tags. |
+
+##### Metric format variables
+
+| Variable | Description |
+| -------- | ----------- |
+| `%job` | Job name. |
+| `%timing` | Timing metric name. |
+| `%value` | Recorded value. |
+| `%time` | Timestamp. |
+| `%url` | Job URL. |
+| `%tags` | Formatted tag string. |
+
+##### Event format variables
+
+| Variable | Description |
+| -------- | ----------- |
+| `%event` | Event name. |
+| `%status` | HTTP status code. |
+| `%time` | Timestamp. |
+| `%tags` | Formatted tag string. |
+
+##### Tag format variables
+
+| Variable | Description |
+| -------- | ----------- |
+| `%name` | Tag name. |
+| `%value` | Tag value. |
