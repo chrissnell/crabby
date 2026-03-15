@@ -1,62 +1,35 @@
+# Crabby configuration — simple probes only, no browser or Chrome required
+#
+# A minimal setup: lightweight HTTP probes reporting to Prometheus.
+
 general:
   request-timeout: 15s
-  # Global tags, applied to all metrics.  You can remove this section if you aren't applying any global tags.
   tags:
-     crabby-location: "Digitalocean SFO2"
-     environment: prod
-  report-internal-metrics: true
-  internal-metrics-gathering-interval: 15
+    environment: prod
+
 jobs:
- - name: my_app
-   type: simple
-   url: https://my-app-here/
-   interval: 10
-   # Per-job tags, applied only to this tag.
-   # You can remove this section if you don't want tags applied to this job.
-   tags:
-      region: us-west-2
-      isp: amazon
- - name: my_api_endpoint
-   type: simple
-   url: https://my-api-here/some/resource
-   interval: 10
-   tags:
-      region: us-central1
-      isp: google
-#
-# Storage Backends
-#
-# You will need to remove/comment-out any that you are not going to be using.
-# 
+  - name: github_homepage
+    type: simple
+    url: https://github.com/
+    interval: 30
+    tags:
+      site: github
+
+  - name: google_homepage
+    type: simple
+    url: https://www.google.com/
+    interval: 30
+    tags:
+      site: google
+
+  - name: google_dns
+    type: simple
+    url: https://dns.google/
+    interval: 60
+    tags:
+      site: google-dns
+
 storage:
-    graphite:
-        host:  graphite.mysite.org
-        port: 2003
-        protocol: tcp
-        metric-namespace: crabby.crabby-sfo-1
-    dogstatsd:
-        host: localhost
-        port: 8125
-        metric-namespace: crabby.crabby-sfo-1
-        tags:
-            - crabby-sfo-1
-    prometheus:
-        host: prometheus.mysite.org
-        port: 9091
-        metric-namespace: crabby.crabby-sfo-1
-    riemann:
-        host: riemann.mysite.org
-        port: 5555
-        metric-namespace: crabby.crabby-sfo-1
-        tags:
-            - crabby-sfo-1
-    pagerduty:
-        event-namespace: crabby.crabby-sfo-1
-        routing-key: 1234567890123456789012345678012
-        client: crabby
-        event-duration: 1h
-    splunk-hec:
-        token: 12345678-1234-1234-1234-123456789012
-        hec-url: https://http-input-{id}.splunkcloud.com/services/collector
-        source: crabby.crabby-sfo-1
-        index: main
+  prometheus:
+    listen-addr: "0.0.0.0:9090"
+    metric-namespace: crabby

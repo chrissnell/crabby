@@ -13,7 +13,7 @@
 - Server response time
 - DOM rendering time
 
-Crabby currently supports these metrics delivery backends:
+Crabby currently supports these metrics delivery backends.  You can enable any combination of them simultaneously and Crabby will send metrics to all of them:
 
 * **Prometheus** - Time measurements as metrics, exposed via a Prometheus endpoint
 * **DogStatsD** - Time measurements as metrics via Datadog's DogStatsD protocol

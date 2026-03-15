@@ -1,94 +1,129 @@
+# Crabby configuration — full example with all probe types and storage backends
+#
+# This file demonstrates every feature. In practice, enable only the storage
+# backends you need and remove the rest.
+
 general:
   request-timeout: 15s
-  tags:
-     crabby-location: "Digitalocean SFO2"
-     environment: prod
+  user-agent: "crabby-monitor/1.0"
   report-internal-metrics: true
   internal-metrics-gathering-interval: 15
+  tags:
+    environment: prod
+    region: us-west-2
+
+# ---------------------------------------------------------------------------
+# Jobs — three probe types: simple, browser, and api
+# ---------------------------------------------------------------------------
 jobs:
- - name: my_app
-   type: simple
-   url: https://my-app-here/
-   interval: 10
-   tags:
-      region: us-west-2
-      isp: amazon
- - name: some_fancy_webpage
-   type: selenium
-   url:  https://my-site-here/some/page/
-   interval: 30
-   tags:
-      region: us-central1
-      isp: google
-   cookies:
-    - name: auth
-      domain: mysite.org
-      path: /
-      value: DEADBEEFC0W123456789
-      secure: true
-    - name: session
-      domain: mysite.org
-      path: /
-      value: abDijfeiF3290FijEIO30NC9jkqQER
-      secure: false
- - name: api_jobs
-   interval: 10
-   type: api
-   tags:
-     region: us-central1
-     isp: google
-   steps:
-     - name: get_something
-       url: https://my-endpoint/get
-       method: get
-     - name: post_something
-       url: https://my-endpoint/post
-       method: post
-       header: { "Content-Type": "application/json" }
-       body: >-
-         { "token": {{ get_something.key1.key2.token }} }
-#
-# Selenium Configuration
-#
-# Remove/comment-out this section if you aren't using Selenium
-# 
-selenium:
- url: http://localhost:4444/wd/hub
- job-stagger-offset: 30
-#
-# Storage Backends
-#
-# You will need to remove/comment-out any that you are not going to be using.
-# 
+  # Simple probes use Go's net/http client. Good for availability checks,
+  # TTFB, DNS/TCP/TLS timing. Low resource usage.
+  - name: github_homepage
+    type: simple
+    url: https://github.com/
+    interval: 30
+    tags:
+      site: github
+
+  - name: google_homepage
+    type: simple
+    url: https://www.google.com/
+    interval: 30
+    method: GET
+    tags:
+      site: google
+
+  # Browser probes use headless Chrome via chromedp. They measure full page
+  # load including DOM rendering and all sub-resources.
+  - name: github_explore
+    type: browser
+    url: https://github.com/explore
+    interval: 60
+    headless: true
+    tags:
+      site: github
+      probe: browser
+
+  # API probes chain multiple HTTP requests. Responses from earlier steps
+  # can be referenced in later steps using {{ step_name.field.path }} syntax.
+  - name: github_api_workflow
+    type: api
+    interval: 60
+    tags:
+      site: github
+      probe: api
+    steps:
+      - name: get_repos
+        url: https://api.github.com/orgs/golang/repos?per_page=1
+        method: GET
+        header:
+          Accept: application/vnd.github.v3+json
+      - name: get_repo_detail
+        url: https://api.github.com/repos/golang/{{ get_repos.0.name }}
+        method: GET
+        header:
+          Accept: application/vnd.github.v3+json
+
+# ---------------------------------------------------------------------------
+# Browser backend — required only if you have browser-type jobs
+# ---------------------------------------------------------------------------
+browser:
+  remote-url: http://localhost:9222
+  headless: true
+
+# ---------------------------------------------------------------------------
+# Storage backends — enable the ones you need
+# ---------------------------------------------------------------------------
 storage:
-    graphite:
-        host:  graphite.mysite.org
-        port: 2003
-        protocol: tcp
-        metric-namespace: crabby.crabby-sfo-1
-    dogstatsd:
-        host: localhost
-        port: 8125
-        metric-namespace: crabby.crabby-sfo-1
-        tags:
-            - crabby-sfo-1
-    prometheus:
-        host: prometheus.mysite.org
-        port: 9091
-        metric-namespace: crabby.crabby-sfo-1
-    riemann:
-        host: riemann.mysite.org
-        port: 5555
-        metric-namespace: crabby.crabby-sfo-1
-        tags:
-            - crabby-sfo-1
-    pagerduty:
-        event-namespace: crabby.crabby-sfo-1
-        routing-key: 1234567890123456789012345678012
-        client: crabby
-        event-duration: 1h
-    splunk-hec:
-        token: 12345678-1234-1234-1234-123456789012
-        hec-url: https://http-input-{id}.splunkcloud.com/services/collector
-        source: crabby.crabby-sfo-1
-        index: main
+  # Prometheus endpoint — scraped by your Prometheus server
+  prometheus:
+    listen-addr: "0.0.0.0:9090"
+    metric-namespace: crabby
+
+  # DogStatsD — compatible with the Datadog Agent
+  dogstatsd:
+    host: localhost
+    port: 8125
+    metric-namespace: crabby
+
+  # InfluxDB v2 — direct HTTP writes
+  influxdb:
+    host: http://influxdb.example.com:8086
+    token: my-influxdb-token
+    # Or load the token from a file (useful for Kubernetes Secrets):
+    # token-file: /run/secrets/influxdb-token
+    org: my-org
+    bucket: crabby
+    metric-namespace: crabby
+
+  # Splunk HTTP Event Collector
+  splunk-hec:
+    hec-url: https://splunk.example.com:8088/services/collector
+    token: 12345678-1234-1234-1234-123456789012
+    # token-file: /run/secrets/splunk-hec-token
+    source: crabby
+    host: crabby-prod-1
+    metrics-source-type: crabby_metrics
+    metrics-index: metrics
+    events-source-type: crabby_events
+    events-index: main
+
+  # PagerDuty — creates incidents on 4xx/5xx responses
+  pagerduty:
+    routing-key: your-pagerduty-integration-key
+    # routing-key-file: /run/secrets/pagerduty-routing-key
+    event-namespace: crabby
+    client: crabby
+    event-duration: 1h
+
+  # Log — write metrics and events to stdout, stderr, or a file
+  log:
+    file: stdout
+    time:
+      format: "2006/01/02 15:04:05"
+      location: Local
+    format:
+      metric: "%time [M: %job] %timing: %value (%tags)\n"
+      event: "%time [E: %name] status: %status (%tags)\n"
+      tag: "%name: %value"
+      tag-seperator: ", "
